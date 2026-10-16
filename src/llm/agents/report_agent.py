@@ -1,12 +1,12 @@
 """
-·çÏÕ±¨¸æÉú³É Agent
+é£é™©æŠ¥å‘Šç”Ÿæˆ Agent
 ==================
-»ùÓÚÄ£ĞÍÔ¤²âºÍ SHAP ½âÊÍ£¬µ÷ÓÃ LLM Éú³É×ÔÈ»ÓïÑÔ·çÏÕ±¨¸æ¡£
+åŸºäºæ¨¡å‹é¢„æµ‹å’Œ SHAP è§£é‡Šï¼Œè°ƒç”¨ LLM ç”Ÿæˆè‡ªç„¶è¯­è¨€é£é™©æŠ¥å‘Šã€‚
 
-ÕâÊÇ "LLM + ML Ğ­Í¬" µÄµäĞÍ³¡¾°£º
-    - ML ¸ºÔğ¾«È·µÄ¸ÅÂÊÔ¤²â
-    - SHAP ¸ºÔğÁ¿»¯ÌØÕ÷¹±Ï×
-    - LLM ¸ºÔğ½«¼¼Êõ½á¹û·­ÒëÎªÒµÎñÓïÑÔ
+è¿™æ˜¯ "LLM + ML ååŒ" çš„å…¸å‹åœºæ™¯ï¼š
+    - ML è´Ÿè´£ç²¾ç¡®çš„æ¦‚ç‡é¢„æµ‹
+    - SHAP è´Ÿè´£é‡åŒ–ç‰¹å¾è´¡çŒ®
+    - LLM è´Ÿè´£å°†æŠ€æœ¯ç»“æœç¿»è¯‘ä¸ºä¸šåŠ¡è¯­è¨€
 """
 from __future__ import annotations
 
@@ -24,9 +24,9 @@ logger = get_logger("llm.report_agent")
 
 class ReportAgent:
     """
-    ·çÏÕ±¨¸æÉú³É Agent¡£
+    é£é™©æŠ¥å‘Šç”Ÿæˆ Agentã€‚
 
-    Ê¹ÓÃÊ¾Àı:
+    ä½¿ç”¨ç¤ºä¾‹:
         >>> agent = ReportAgent(client, prompt_mgr, agent_config)
         >>> report = agent.generate(
         ...     features=features_dict,
@@ -54,25 +54,25 @@ class ReportAgent:
         stream: bool = False,
     ):
         """
-        Éú³É·çÏÕ±¨¸æ¡£
+        ç”Ÿæˆé£é™©æŠ¥å‘Šã€‚
 
-        ²ÎÊı:
-            features: ¿Í»§ÌØÕ÷×Öµä
-            probability: Î¥Ô¼¸ÅÂÊ
-            shap_explanation: SHAPExplanation ¶ÔÏó
-            stream: ÊÇ·ñÁ÷Ê½Êä³ö
+        å‚æ•°:
+            features: å®¢æˆ·ç‰¹å¾å­—å…¸
+            probability: è¿çº¦æ¦‚ç‡
+            shap_explanation: SHAPExplanation å¯¹è±¡
+            stream: æ˜¯å¦æµå¼è¾“å‡º
 
-        ·µ»Ø:
-            ±¨¸æÎÄ±¾£¨stream=False£©»ò×Ö·û´®Éú³ÉÆ÷£¨stream=True£©
+        è¿”å›:
+            æŠ¥å‘Šæ–‡æœ¬ï¼ˆstream=Falseï¼‰æˆ–å­—ç¬¦ä¸²ç”Ÿæˆå™¨ï¼ˆstream=Trueï¼‰
         """
-        # ¹¹ÔìÊäÈëÉÏÏÂÎÄ
+        # æ„é€ è¾“å…¥ä¸Šä¸‹æ–‡
         context = self._build_context(features, probability, shap_explanation)
 
-        # äÖÈ¾ Prompt
+        # æ¸²æŸ“ Prompt
         prompt = self.prompts.render("risk_report", **context)
         system_prompt = self.prompts.get_system_role("risk_report")
 
-        logger.info(f"Éú³É·çÏÕ±¨¸æ - Î¥Ô¼¸ÅÂÊ={probability:.4f}")
+        logger.info(f"ç”Ÿæˆé£é™©æŠ¥å‘Š - è¿çº¦æ¦‚ç‡={probability:.4f}")
 
         if stream:
             return self.client.stream_chat(prompt, system_prompt=system_prompt)
@@ -84,19 +84,19 @@ class ReportAgent:
         probability: float,
         shap_explanation,
     ) -> Dict[str, Any]:
-        """¹¹ÔìÄ£°åäÖÈ¾ËùĞèµÄÉÏÏÂÎÄ"""
-        # ·çÏÕµÈ¼¶
+        """æ„é€ æ¨¡æ¿æ¸²æŸ“æ‰€éœ€çš„ä¸Šä¸‹æ–‡"""
+        # é£é™©ç­‰çº§
         if probability < 0.3:
-            risk_level = "µÍ·çÏÕ"
+            risk_level = "ä½é£é™©"
         elif probability < 0.7:
-            risk_level = "ÖĞ·çÏÕ"
+            risk_level = "ä¸­é£é™©"
         else:
-            risk_level = "¸ß·çÏÕ"
+            risk_level = "é«˜é£é™©"
 
-        # Top N ÌØÕ÷
+        # Top N ç‰¹å¾
         top_features = shap_explanation.get_top_features(self.top_n)
 
-        # ¼ò»¯ÌØÕ÷Õ¹Ê¾£¨½öÕ¹Ê¾ÓĞÒµÎñº¬ÒåµÄ¹Ø¼ü×Ö¶Î£©
+        # ç®€åŒ–ç‰¹å¾å±•ç¤ºï¼ˆä»…å±•ç¤ºæœ‰ä¸šåŠ¡å«ä¹‰çš„å…³é”®å­—æ®µï¼‰
         display_features = self._select_display_features(features)
 
         return {
@@ -109,8 +109,8 @@ class ReportAgent:
 
     @staticmethod
     def _select_display_features(features: Dict) -> Dict:
-        """´ÓËùÓĞÌØÕ÷ÖĞÉ¸Ñ¡³öÒµÎñº¬ÒåÃ÷È·µÄ×Ö¶ÎÓÃÓÚÕ¹Ê¾"""
-        # ÓÅÏÈÕ¹Ê¾ÕâĞ©×Ö¶Î
+        """ä»æ‰€æœ‰ç‰¹å¾ä¸­ç­›é€‰å‡ºä¸šåŠ¡å«ä¹‰æ˜ç¡®çš„å­—æ®µç”¨äºå±•ç¤º"""
+        # ä¼˜å…ˆå±•ç¤ºè¿™äº›å­—æ®µ
         priority_fields = [
             "loanAmnt", "term", "interestRate", "installment",
             "annualIncome", "dti", "employmentLength", "homeOwnership",
@@ -118,24 +118,24 @@ class ReportAgent:
             "delinquency_2years", "openAcc", "totalAcc", "revolUtil",
         ]
 
-        # ÖĞÎÄ±êÇ©Ó³Éä
+        # ä¸­æ–‡æ ‡ç­¾æ˜ å°„
         labels = {
-            "loanAmnt": "´û¿î½ğ¶î",
-            "term": "´û¿îÆÚÏŞ(Äê)",
-            "interestRate": "ÀûÂÊ(%)",
-            "installment": "ÔÂ»¹¿î¶î",
-            "annualIncome": "ÄêÊÕÈë",
-            "dti": "¸ºÕ®ÊÕÈë±È",
-            "employmentLength": "¾ÍÒµÄêÏŞ",
-            "homeOwnership": "·¿ÎİËùÓĞÈ¨",
-            "purpose": "´û¿îÓÃÍ¾",
-            "grade": "´û¿îµÈ¼¶",
-            "ficoRangeLow": "FICO ÆÀ·ÖÏÂÏŞ",
-            "ficoRangeHigh": "FICO ÆÀ·ÖÉÏÏŞ",
-            "delinquency_2years": "½ü2ÄêÓâÆÚ´ÎÊı",
-            "openAcc": "Î´½áĞÅÓÃ¶î¶ÈÊı",
-            "totalAcc": "×ÜĞÅÓÃ¶î¶ÈÊı",
-            "revolUtil": "Ñ­»·¶î¶ÈÀûÓÃÂÊ",
+            "loanAmnt": "è´·æ¬¾é‡‘é¢",
+            "term": "è´·æ¬¾æœŸé™(å¹´)",
+            "interestRate": "åˆ©ç‡(%)",
+            "installment": "æœˆè¿˜æ¬¾é¢",
+            "annualIncome": "å¹´æ”¶å…¥",
+            "dti": "è´Ÿå€ºæ”¶å…¥æ¯”",
+            "employmentLength": "å°±ä¸šå¹´é™",
+            "homeOwnership": "æˆ¿å±‹æ‰€æœ‰æƒ",
+            "purpose": "è´·æ¬¾ç”¨é€”",
+            "grade": "è´·æ¬¾ç­‰çº§",
+            "ficoRangeLow": "FICO è¯„åˆ†ä¸‹é™",
+            "ficoRangeHigh": "FICO è¯„åˆ†ä¸Šé™",
+            "delinquency_2years": "è¿‘2å¹´é€¾æœŸæ¬¡æ•°",
+            "openAcc": "æœªç»“ä¿¡ç”¨é¢åº¦æ•°",
+            "totalAcc": "æ€»ä¿¡ç”¨é¢åº¦æ•°",
+            "revolUtil": "å¾ªç¯é¢åº¦åˆ©ç”¨ç‡",
         }
 
         result = {}
@@ -143,7 +143,7 @@ class ReportAgent:
             if field in features:
                 label = labels.get(field, field)
                 value = features[field]
-                # ÊıÖµÃÀ»¯
+                # æ•°å€¼ç¾åŒ–
                 if isinstance(value, float):
                     value = round(value, 2)
                 result[label] = value
