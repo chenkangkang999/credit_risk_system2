@@ -14,6 +14,7 @@ from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
+from sklearn.impute import KNNImputer
 from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler, RobustScaler
 
 from src.utils.logger import get_logger
@@ -42,6 +43,8 @@ class Preprocessor:
         self._scaler = None
         self._dropped_cols: list = []
         self._outlier_clips: Dict[str, tuple] = {}
+        self._knn_imputer = None  # KNN填充器（仅用于dti、revolUtil）
+        self._knn_columns = ["dti", "revolUtil"]  # 用KNN填充的列
 
         self._is_fitted = False
 
@@ -112,7 +115,6 @@ class Preprocessor:
     def _fit_imputers(self, df: pd.DataFrame) -> None:
         """学习缺失值填充策略"""
         num_strategy = self.feature_cfg.missing_value.numerical_strategy
-        cat_strategy = self.feature_cfg.missing_value.categorical_strategy
 
         # 数值列
         num_cols = [c for c in self.data_cfg.columns.numerical if c in df.columns]
@@ -127,7 +129,21 @@ class Preprocessor:
             else:
                 self._numerical_imputers[col] = df[col].median()
 
+        # KNN填充：仅对 dti、revolUtil 两列，用其他列的信息找相似样本填充
+        knn_cols_present = [c for c in self._knn_columns if c in df.columns]
+        if knn_cols_present:
+            # 先把其他数值列用median填好，保留dti/revolUtil的缺失
+            df_temp = df.copy()
+            other_num_cols = [c for c in num_cols if c not in knn_cols_present]
+            for col in other_num_cols:
+                df_temp[col] = df_temp[col].fillna(self._numerical_imputers[col])
+            # 用完整数值矩阵拟合KNNImputer
+            self._knn_imputer = KNNImputer(n_neighbors=5)
+            self._knn_imputer.fit(df_temp[num_cols].values)
+            logger.info(f"KNN填充器已拟合 - 目标列: {knn_cols_present}")
+
         # 类别列
+        cat_strategy = self.feature_cfg.missing_value.categorical_strategy
         cat_cols = [c for c in self.data_cfg.columns.categorical if c in df.columns]
         for col in cat_cols:
             if cat_strategy == "mode":
@@ -138,10 +154,27 @@ class Preprocessor:
 
     def _apply_imputers(self, df: pd.DataFrame) -> pd.DataFrame:
         """应用缺失值填充"""
+        num_cols = [c for c in self.data_cfg.columns.numerical if c in df.columns]
+        num_cols += [c for c in self.data_cfg.columns.anonymous if c in df.columns]
+        knn_cols_present = [c for c in self._knn_columns if c in df.columns]
+
+        # 先对非KNN列做median填充
         for col, fill_value in self._numerical_imputers.items():
-            if col in df.columns:
+            if col in df.columns and col not in knn_cols_present:
                 df[col] = df[col].fillna(fill_value)
 
+        # KNN填充：对 dti、revolUtil 两列，用KNN找相似样本填充
+        if self._knn_imputer is not None and knn_cols_present:
+            # 此时其他列已填好，dti/revolUtil还有缺失，喂给KNNImputer
+            filled_values = self._knn_imputer.transform(df[num_cols].values)
+            df[num_cols] = filled_values
+        else:
+            # 没有KNN时，KNN列也用median填
+            for col in knn_cols_present:
+                if col in self._numerical_imputers:
+                    df[col] = df[col].fillna(self._numerical_imputers[col])
+
+        # 类别列填充
         for col, fill_value in self._categorical_imputers.items():
             if col in df.columns:
                 df[col] = df[col].fillna(fill_value).astype(str)

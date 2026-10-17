@@ -110,6 +110,28 @@ class TestPreprocessor:
         # 处理后不应有缺失值
         assert X_processed.isnull().sum().sum() == 0
 
+    def test_knn_imputation(self, configs, sample_df):
+        """测试 dti 和 revolUtil 的 KNN 填充"""
+        from src.data.preprocessor import Preprocessor
+
+        # 故意给 dti 和 revolUtil 加缺失值
+        df = sample_df.drop(columns=["isDefault", "id"]).copy()
+        df.loc[0:10, "dti"] = np.nan
+        df.loc[20:30, "revolUtil"] = np.nan
+
+        prep = Preprocessor(configs.get("data"), configs.get("feature"))
+        X_processed = prep.fit_transform(df)
+
+        # 不应有缺失值
+        assert X_processed.isnull().sum().sum() == 0
+
+        # dti 和 revolUtil 应该被填上了合理的值
+        assert "dti" in X_processed.columns
+        assert "revolUtil" in X_processed.columns
+        # KNN填充的值应该在合理范围内（不会是极端值）
+        assert X_processed["dti"].between(-100, 200).all()
+        assert X_processed["revolUtil"].between(-100, 200).all()
+
 
 # ===== 测试 XGBoost =====
 class TestXGB:
