@@ -52,7 +52,7 @@ class ConfigLoader:
     def _initialize(self, config_dir: str) -> None:
         """初始化：加载 .env 和所有 YAML 配置"""
         # 加载环境变量
-        load_dotenv()
+        load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=True)
 
         # 解析为绝对路径，便于错误提示
         self.config_dir = Path(config_dir).resolve()
@@ -98,10 +98,14 @@ class ConfigLoader:
             content = f.read()
 
         # 环境变量插值: ${VAR_NAME} 或 ${VAR_NAME:-default_value}
-        content = self._interpolate_env_vars(content)
-
         data = yaml.safe_load(content)
-        return AttrDict(data) if data else AttrDict({})
+        def interpolate(value):
+            if isinstance(value, dict):
+                return {key: interpolate(item) for key, item in value.items()}
+            if isinstance(value, list):
+                return [interpolate(item) for item in value]
+            return self._interpolate_env_vars(value) if isinstance(value, str) else value
+        return AttrDict(interpolate(data or {}))
 
     @staticmethod
     def _interpolate_env_vars(content: str) -> str:
@@ -138,6 +142,11 @@ class ConfigLoader:
     def __repr__(self) -> str:
         return f"ConfigLoader(dir={self.config_dir}, configs={list(self._configs.keys())})"
 
+    def __getattr__(self, name):
+        if name in self._configs:
+            return self._configs[name]
+        raise AttributeError(name)
+
 
 class AttrDict(dict):
     """
@@ -171,6 +180,15 @@ class AttrDict(dict):
 
     def __setattr__(self, key: str, value: Any) -> None:
         self[key] = self._wrap(value)
+
+    def to_dict(self) -> dict:
+        def unwrap(value):
+            if isinstance(value, dict):
+                return {key: unwrap(item) for key, item in value.items()}
+            if isinstance(value, list):
+                return [unwrap(item) for item in value]
+            return value
+        return unwrap(self)
 
 
 # ===== 便捷函数 =====

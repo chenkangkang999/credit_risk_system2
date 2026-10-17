@@ -1,135 +1,50 @@
-"""
-⚙️ 系统配置页面
-================
-在线查看、修改 YAML 配置（教学演示用）。
-"""
 import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+import os
 import streamlit as st
 import yaml
 
-ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(ROOT))
+from app.components.runtime import ROOT, init_page, llm_tools, public_mode
+from app.components.settings_editor import save_settings, validate_settings
 
-from app.components.sidebar import render_sidebar
-
-st.set_page_config(page_title="系统配置", page_icon="⚙️", layout="wide")
-render_sidebar()
-
-st.title("⚙️ 系统配置")
-st.caption("查看和编辑系统的所有 YAML 配置文件")
-
-st.warning("⚠️ **教学演示页面** - 修改配置会影响后续训练，请谨慎操作。生产环境建议通过版本控制管理配置。")
-
-# ===== 配置文件列表 =====
-config_dir = ROOT / "configs"
-config_files = sorted(config_dir.glob("*.yaml"))
-
-if not config_files:
-    st.error(f"未找到配置文件: {config_dir}")
-    st.stop()
-
-selected_file = st.selectbox(
-    "选择配置文件",
-    config_files,
-    format_func=lambda x: x.name,
-)
-
-# ===== 显示文件内容 =====
-content = selected_file.read_text(encoding="utf-8")
-
-tab1, tab2 = st.tabs(["📝 编辑模式", "🌳 树形视图"])
-
-with tab1:
-    st.markdown(f"### 文件: `configs/{selected_file.name}`")
-
-    edited = st.text_area(
-        "配置内容",
-        value=content,
-        height=600,
-        key=f"editor_{selected_file.name}",
-    )
-
-    col1, col2, col3 = st.columns([1, 1, 4])
-    with col1:
-        if st.button("✅ 验证 YAML", use_container_width=True):
+configs, cfg = init_page("系统配置", "查看基础配置与扩展规则，检查 DeepSeek 连接状态。", "SETTINGS")
+settings_tab, original, templates, api = st.tabs(["本地扩展配置", "基础配置（只读）", "提示词模板", "API 状态"])
+with settings_tab:
+    st.caption("修改保存到 .local/settings.yaml，仅影响之后的训练；同学的基础配置不写回，已有模型继续使用原训练规则。")
+    content = yaml.safe_dump(cfg.to_dict(), allow_unicode=True, sort_keys=False)
+    edited = st.text_area("扩展规则 YAML", content, height=420, disabled=public_mode())
+    if not public_mode():
+        a, b = st.columns(2)
+        if a.button("校验格式和关键参数"):
             try:
-                yaml.safe_load(edited)
-                st.success("✅ YAML 格式正确")
-            except yaml.YAMLError as e:
-                st.error(f"❌ YAML 格式错误: {e}")
-
-    with col2:
-        if st.button("💾 保存", type="primary", use_container_width=True):
+                validate_settings(yaml.safe_load(edited))
+                st.success("校验通过")
+            except (ValueError, yaml.YAMLError) as error:
+                st.error(str(error))
+        if b.button("保存本地配置", type="primary"):
             try:
-                # 验证后保存
-                yaml.safe_load(edited)
-                selected_file.write_text(edited, encoding="utf-8")
-                st.success(f"✅ 已保存到 {selected_file.name}")
-                st.balloons()
-                # 清缓存以重新加载
-                st.cache_resource.clear()
-            except yaml.YAMLError as e:
-                st.error(f"❌ YAML 格式错误，未保存: {e}")
-            except Exception as e:
-                st.error(f"❌ 保存失败: {e}")
-
-with tab2:
-    st.markdown(f"### 文件: `configs/{selected_file.name}` (树形视图)")
-    try:
-        data = yaml.safe_load(content)
-        st.json(data, expanded=True)
-    except yaml.YAMLError as e:
-        st.error(f"YAML 解析失败: {e}")
-
-# ===== Prompt 模板 =====
-st.divider()
-st.markdown("## 📜 Prompt 模板")
-
-prompts_dir = config_dir / "prompts"
-if prompts_dir.exists():
-    prompt_files = sorted(prompts_dir.glob("*.j2"))
-
-    if prompt_files:
-        selected_prompt = st.selectbox(
-            "选择 Prompt 模板",
-            prompt_files,
-            format_func=lambda x: x.name,
-        )
-
-        prompt_content = selected_prompt.read_text(encoding="utf-8")
-        st.text_area(
-            "模板内容",
-            value=prompt_content,
-            height=400,
-            key=f"prompt_{selected_prompt.name}",
-            help="Jinja2 模板：{{ variable }} 表示插值，{% for %} 等表示控制结构",
-        )
-
-# ===== 环境变量 =====
-st.divider()
-st.markdown("## 🔐 环境变量")
-
-import os
-
-env_vars = {
-    "DEEPSEEK_API_KEY": os.environ.get("DEEPSEEK_API_KEY", ""),
-    "DEEPSEEK_BASE_URL": os.environ.get("DEEPSEEK_BASE_URL", ""),
-    "DEEPSEEK_MODEL": os.environ.get("DEEPSEEK_MODEL", ""),
-    "LOG_LEVEL": os.environ.get("LOG_LEVEL", ""),
-}
-
-env_data = []
-for key, value in env_vars.items():
-    if "KEY" in key and value:
-        # 脱敏显示
-        masked = value[:6] + "..." + value[-4:] if len(value) > 12 else "***"
-        env_data.append({"变量名": key, "值": masked})
+                save_settings(yaml.safe_load(edited))
+                st.success("本地扩展配置已保存，重新打开页面后生效。")
+            except (ValueError, yaml.YAMLError) as error:
+                st.error(str(error))
     else:
-        env_data.append({"变量名": key, "值": value or "(未设置)"})
-
-import pandas as pd
-st.dataframe(pd.DataFrame(env_data), use_container_width=True, hide_index=True)
-
-st.caption("💡 修改环境变量请编辑项目根目录的 `.env` 文件后重启应用")
+        st.info("公开演示站点只提供配置查看。")
+with original:
+    choice = st.selectbox("基础配置文件", ["data_config.yaml", "feature_config.yaml", "model_config.yaml",
+                                        "pipeline_config.yaml", "llm_config.yaml"])
+    st.code((ROOT / "configs" / choice).read_text(encoding="utf-8"), language="yaml")
+with templates:
+    files = sorted((ROOT / "configs/prompts").glob("*.j2"))
+    selected = st.selectbox("模板", [p.name for p in files])
+    st.code((ROOT / "configs/prompts" / selected).read_text(encoding="utf-8"))
+with api:
+    client, _, _ = llm_tools()
+    st.write("DeepSeek 密钥状态：" + ("已配置（不显示内容）" if client.configured else "未配置或处于公开展示模式"))
+    st.write("模型：" + str(configs.get("llm").deepseek.model))
+    if not public_mode():
+        st.caption(f"密钥填写位置：{ROOT / '.env'}。修改后重启应用。")
+        if client.configured and st.button("测试连接（会发起一次少量 token 请求）"):
+            ok = client.health_check()
+            (st.success if ok else st.error)("连接成功" if ok else "连接失败，请检查密钥、余额和网络")

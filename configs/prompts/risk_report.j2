@@ -8,9 +8,11 @@
 ## 模型预测结果
 - **违约概率**: {{ "%.2f" | format(probability * 100) }}%
 - **风险等级**: {{ risk_level }}
-- **使用模型**: XGBoost + MLP 融合模型
+- **使用模型**: {{ model_name | default('XGBoost') }}
+- 风险等级由模型概率和项目阈值确定，不得自行更改。
 
 ## SHAP 特征贡献度（Top {{ top_n }}）
+归因对象：{{ explanation_model | default(model_name) }}。如与预测模型不同，只能解释该子模型，不能作为整个预测模型的精确归因。
 以下为对预测结果影响最大的特征：
 
 {% for item in shap_top_features %}

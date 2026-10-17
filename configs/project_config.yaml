@@ -1,0 +1,30 @@
+app:
+  title: 智能信贷风控分析系统
+  low_risk: 0.3
+  high_risk: 0.7
+demo:
+  samples: 5000
+  seed: 42
+  trees: 80
+  epochs: 8
+  trials: 3
+  max_upload_mb: 20
+features:
+  - {name: monthly_income, operation: monthly_income, description: 月收入}
+  - {name: installment_to_income_ratio, operation: payment_ratio, description: 月供收入比}
+  - {name: fico_avg, operation: fico_mean, description: 信用评分均值}
+  - {name: loan_to_income_ratio, operation: ratio, numerator: loanAmnt, denominator: annualIncome, description: 贷款收入比}
+  - {name: revol_util_bucket, operation: bucket, column: revolUtil, bins: [-.inf, 30, 60, 90, .inf], description: 信用利用率分箱}
+ab_test:
+  model_a: xgboost
+  model_b: lightgbm
+  ratio: 0.5
+compliance:
+  required_fields: [loanAmnt, annualIncome, term, interestRate]
+  max_loan_income_ratio: 1.0
+  max_dti: 40
+  rules:
+    - 关键申请资料应完整，收入和贷款金额应为正数。
+    - 贷款收入比超过项目设定阈值时应提示人工复核。
+    - 负债收入比超过项目设定阈值时应提示人工复核。
+    - 审批建议应与当前模型风险区间一致。

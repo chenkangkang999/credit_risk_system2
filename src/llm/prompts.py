@@ -32,6 +32,8 @@ class PromptManager:
     def __init__(self, config):
         self.config = config
         self.templates_dir = Path(config.prompts.templates_dir)
+        if not self.templates_dir.is_absolute():
+            self.templates_dir = Path(__file__).resolve().parents[2] / self.templates_dir
         self.prompts_cfg = config.prompts
 
         if not self.templates_dir.exists():
@@ -42,6 +44,7 @@ class PromptManager:
             trim_blocks=True,
             lstrip_blocks=True,
         )
+        self.env.policies["json.dumps_kwargs"] = {"ensure_ascii": False, "sort_keys": False}
 
         # 缓存模板
         self._template_cache: Dict[str, Template] = {}
@@ -83,3 +86,4 @@ class PromptManager:
     def reload(self) -> None:
         """重新加载所有模板（开发用）"""
         self._template_cache.clear()
+        self.env.cache.clear()

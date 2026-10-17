@@ -1,256 +1,150 @@
-"""
-DeepSeek API 客户端
-====================
-封装 DeepSeek 大模型 API 调用，支持流式输出、重试、限流等。
-
-要点:
-    1. 使用 OpenAI SDK（DeepSeek 兼容 OpenAI 接口）
-    2. 重试机制（tenacity）
-    3. 流式输出（Streamlit 实时显示）
-    4. 审计日志（合规要求）
-    5. 异常隔离（LLM 失败不影响主流程）
-"""
-from __future__ import annotations
-
 import json
 import os
+import re
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional
 
-from openai import OpenAI
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-)
+from openai import (APIConnectionError, APITimeoutError, AuthenticationError,
+                    InternalServerError, OpenAI, RateLimitError)
 
 from src.utils.logger import get_logger
 
-logger = get_logger("llm.client")
+logger = get_logger("llm")
+_TRANSIENT = (APIConnectionError, APITimeoutError, InternalServerError, RateLimitError)
 
 
 class DeepSeekClient:
-    """
-    DeepSeek API 客户端。
-
-    使用示例:
-        >>> client = DeepSeekClient(llm_config)
-        >>> # 普通调用
-        >>> response = client.chat("解释一下违约概率是什么")
-        >>> # 流式调用
-        >>> for chunk in client.stream_chat("解释一下违约概率"):
-        ...     print(chunk, end="")
-    """
-
     def __init__(self, config):
         self.config = config
         self.deepseek_cfg = config.deepseek
-
-        # 从环境变量读取 API Key
-        api_key_env = self.deepseek_cfg.api_key_env
-        api_key = os.environ.get(api_key_env)
-        if not api_key or api_key == "sk-your-api-key-here":
-            logger.warning(
-                f"未找到有效的 {api_key_env}。\n"
-                f"请在 .env 中配置真实的 DeepSeek API Key。\n"
-                f"申请地址: https://platform.deepseek.com"
-            )
-
-        # 初始化 OpenAI 兼容客户端
-        self.client = OpenAI(
-            api_key=api_key or "dummy-key",
-            base_url=self.deepseek_cfg.base_url,
-            timeout=self.deepseek_cfg.default_params.timeout,
-        )
-
         self.model = self.deepseek_cfg.model
-        self.default_params = dict(self.deepseek_cfg.default_params)
-        self.default_params.pop("timeout", None)  # timeout 在 client 上设置
+        self.client = None
+        self._request_times = []
+        self._lock = threading.Lock()
+        self.audit_log_path = Path(__file__).resolve().parents[2] / "logs/llm_audit.log"
 
-        # 限流计数器
-        self._request_times: List[float] = []
+    @property
+    def configured(self):
+        key = os.getenv(self.deepseek_cfg.api_key_env, "")
+        return bool(key and not key.startswith("sk-your")) and os.getenv("APP_ENV") != "public_demo" and os.getenv("CREDIT_RISK_PUBLIC_DEMO") != "1"
 
-        # 审计日志路径
-        self.audit_log_path = None
-        if hasattr(config, "safety") and config.safety.audit_log.enabled:
-            self.audit_log_path = Path(config.safety.audit_log.log_file)
-            self.audit_log_path.parent.mkdir(parents=True, exist_ok=True)
+    def _require_client(self):
+        if not self.configured:
+            raise ValueError("请在本地 .env 中配置 DeepSeek API Key；公开演示模式不调用 API")
+        if self.client is None:
+            self.client = OpenAI(api_key=os.environ[self.deepseek_cfg.api_key_env],
+                                 base_url=self.deepseek_cfg.base_url,
+                                 timeout=self.deepseek_cfg.default_params.timeout, max_retries=0)
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=30),
-        retry=retry_if_exception_type(Exception),
-        reraise=True,
-    )
-    def chat(
-        self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        history: Optional[List[Dict]] = None,
-        **kwargs,
-    ) -> str:
-        """
-        非流式对话。
+    def _sanitize_input(self, text):
+        text = str(text)
+        key = os.getenv(self.deepseek_cfg.api_key_env, "")
+        if key:
+            text = text.replace(key, "[已隐藏密钥]")
+        text = re.sub(r"sk-[A-Za-z0-9_-]{8,}", "[已隐藏密钥]", text)
+        text = re.sub(r"(?<!\d)1[3-9]\d{9}(?!\d)", "[已隐藏手机号]", text)
+        return re.sub(r"(?<!\d)\d{17}[\dXx](?!\d)", "[已隐藏证件号]", text)
 
-        参数:
-            prompt: 用户消息
-            system_prompt: 系统消息（可选）
-            history: 历史对话 [{"role": "user/assistant", "content": "..."}]
-            **kwargs: 覆盖默认参数
-        """
-        self._check_rate_limit()
-
-        messages = self._build_messages(prompt, system_prompt, history)
-        params = {**self.default_params, **kwargs}
-
-        # 安全过滤
-        prompt = self._sanitize_input(prompt)
-
-        try:
-            t0 = time.time()
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                stream=False,
-                **params,
-            )
-            duration = time.time() - t0
-
-            content = response.choices[0].message.content
-            usage = response.usage.model_dump() if response.usage else {}
-
-            self._log_audit(prompt, content, duration, usage)
-            logger.info(f"LLM 调用完成 - 耗时 {duration:.2f}s, tokens={usage}")
-            return content
-
-        except Exception as e:
-            logger.error(f"LLM 调用失败: {e}")
-            raise
-
-    def stream_chat(
-        self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        history: Optional[List[Dict]] = None,
-        **kwargs,
-    ) -> Generator[str, None, None]:
-        """
-        流式对话（用于实时显示）。
-
-        使用示例:
-            >>> for chunk in client.stream_chat("..."):
-            ...     print(chunk, end="", flush=True)
-        """
-        self._check_rate_limit()
-
-        messages = self._build_messages(prompt, system_prompt, history)
-        params = {**self.default_params, **kwargs}
-
-        prompt = self._sanitize_input(prompt)
-        full_response = ""
-        t0 = time.time()
-
-        try:
-            stream = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                stream=True,
-                **params,
-            )
-            for chunk in stream:
-                delta = chunk.choices[0].delta
-                if delta and delta.content:
-                    full_response += delta.content
-                    yield delta.content
-
-            duration = time.time() - t0
-            self._log_audit(prompt, full_response, duration, {"stream": True})
-            logger.info(f"LLM 流式调用完成 - 耗时 {duration:.2f}s")
-
-        except Exception as e:
-            logger.error(f"LLM 流式调用失败: {e}")
-            yield f"\n\n[错误]: {str(e)}"
-
-    # -------- 内部辅助方法 --------
-
-    def _build_messages(
-        self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        history: Optional[List[Dict]] = None,
-    ) -> List[Dict]:
-        """构建符合 OpenAI 格式的消息列表"""
+    def _build_messages(self, prompt, system_prompt=None, history=None):
         messages = []
         if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        if history:
-            messages.extend(history)
-        messages.append({"role": "user", "content": prompt})
+            messages.append({"role": "system", "content": self._sanitize_input(system_prompt)})
+        turns = self.config.agents.chat_agent.max_history_turns
+        for message in (history or [])[-turns*2:]:
+            if message.get("role") in ("user", "assistant"):
+                messages.append({"role": message["role"], "content": self._sanitize_input(message["content"])})
+        messages.append({"role": "user", "content": self._sanitize_input(prompt)})
         return messages
 
-    def _check_rate_limit(self) -> None:
-        """简单的限流检查（每分钟请求数）"""
-        if not self.deepseek_cfg.rate_limit.enabled:
+    def _check_rate_limit(self):
+        cfg = self.deepseek_cfg.rate_limit
+        if not cfg.enabled:
             return
+        with self._lock:
+            now = time.monotonic()
+            self._request_times = [stamp for stamp in self._request_times if now-stamp < 60]
+            if len(self._request_times) >= cfg.requests_per_minute:
+                raise ValueError("请求次数较多，请稍后再试")
+            self._request_times.append(now)
 
-        now = time.time()
-        # 仅保留 60 秒内的请求记录
-        self._request_times = [t for t in self._request_times if now - t < 60]
+    def _params(self, kwargs):
+        params = dict(self.deepseek_cfg.default_params)
+        params.pop("timeout", None)
+        params.update(kwargs)
+        return params
 
-        max_rpm = self.deepseek_cfg.rate_limit.requests_per_minute
-        if len(self._request_times) >= max_rpm:
-            wait_time = 60 - (now - self._request_times[0])
-            logger.warning(f"达到限流阈值 ({max_rpm}/min)，等待 {wait_time:.1f}s")
-            time.sleep(max(wait_time, 1))
-
-        self._request_times.append(now)
-
-    def _sanitize_input(self, text: str) -> str:
-        """敏感信息过滤"""
-        if not hasattr(self.config, "safety") or not self.config.safety.content_filter.enabled:
-            return text
-
-        import re
-        for pattern in self.config.safety.content_filter.block_patterns:
-            text = re.sub(pattern, "[REDACTED]", text, flags=re.IGNORECASE)
-        return text
-
-    def _log_audit(
-        self,
-        prompt: str,
-        response: str,
-        duration: float,
-        usage: Dict,
-    ) -> None:
-        """审计日志（合规需要）"""
-        if self.audit_log_path is None:
+    def _log_audit(self, duration, usage, status):
+        if not self.config.safety.audit_log.enabled:
             return
-
-        # 控制日志大小
-        log_response = self.config.safety.audit_log.log_response if hasattr(self.config, "safety") else False
-
-        record = {
-            "timestamp": datetime.now().isoformat(),
-            "model": self.model,
-            "duration_sec": round(duration, 2),
-            "usage": usage,
-            "prompt_preview": prompt[:200],
-            "response_preview": response[:200] if log_response else None,
-        }
+        record = {"timestamp": datetime.now().isoformat(), "model": self.model,
+                  "duration_sec": round(duration, 3), "usage": usage, "status": status}
         try:
-            with open(self.audit_log_path, "a", encoding="utf-8") as f:
-                f.write(json.dumps(record, ensure_ascii=False) + "\n")
-        except Exception as e:
-            logger.warning(f"审计日志写入失败: {e}")
+            self.audit_log_path.parent.mkdir(exist_ok=True)
+            with self.audit_log_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except OSError:
+            logger.warning("审计日志暂时无法写入")
 
-    def health_check(self) -> bool:
-        """健康检查"""
+    def chat(self, prompt, system_prompt=None, history=None, **kwargs):
+        system_prompt = kwargs.pop("system", system_prompt)
+        self._require_client()
+        messages = self._build_messages(prompt, system_prompt, history)
+        cfg = self.deepseek_cfg.retry
+        for attempt in range(cfg.max_attempts):
+            self._check_rate_limit()
+            start = time.monotonic()
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model, messages=messages, stream=False, **self._params(kwargs))
+                usage = response.usage.model_dump() if response.usage else {}
+                self._log_audit(time.monotonic()-start, usage, "ok")
+                return response.choices[0].message.content or ""
+            except AuthenticationError:
+                raise ValueError("API 密钥未通过验证，请检查本地配置") from None
+            except _TRANSIENT:
+                self._log_audit(time.monotonic()-start, {}, "connection_error")
+                if attempt+1 == cfg.max_attempts:
+                    raise RuntimeError("DeepSeek 暂时无法连接，请稍后重试") from None
+                time.sleep(min(cfg.initial_wait * cfg.backoff_factor**attempt, cfg.max_wait))
+            except Exception:
+                raise RuntimeError("DeepSeek 请求失败，请检查模型名称、余额与服务状态") from None
+
+    def stream_chat(self, prompt, system_prompt=None, history=None, **kwargs):
+        system_prompt = kwargs.pop("system", system_prompt)
+        self._require_client()
+        messages = self._build_messages(prompt, system_prompt, history)
+        cfg = self.deepseek_cfg.retry
+        for attempt in range(cfg.max_attempts):
+            emitted = False
+            self._check_rate_limit()
+            start = time.monotonic()
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model, messages=messages, stream=True, **self._params(kwargs))
+                try:
+                    for chunk in response:
+                        if chunk.choices and chunk.choices[0].delta.content:
+                            emitted = True
+                            yield chunk.choices[0].delta.content
+                finally:
+                    response.close()
+                self._log_audit(time.monotonic()-start, {"stream": True}, "ok")
+                return
+            except AuthenticationError:
+                raise ValueError("API 密钥未通过验证，请检查本地配置") from None
+            except _TRANSIENT:
+                self._log_audit(time.monotonic()-start, {}, "stream_interrupted")
+                if emitted or attempt+1 == cfg.max_attempts:
+                    raise RuntimeError("报告生成中断，已收到的内容保留，请重试") from None
+                time.sleep(min(cfg.initial_wait * cfg.backoff_factor**attempt, cfg.max_wait))
+            except Exception:
+                raise RuntimeError("报告生成失败，请检查服务状态后重试") from None
+
+    def health_check(self):
         try:
-            self.chat("hello", max_tokens=10)
+            self.chat("请回复 OK", max_tokens=10)
             return True
-        except Exception as e:
-            logger.error(f"健康检查失败: {e}")
+        except (ValueError, RuntimeError):
             return False

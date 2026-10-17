@@ -52,6 +52,10 @@ class ReportAgent:
         probability: float,
         shap_explanation,
         stream: bool = False,
+        model_name: str = "XGBoost",
+        low_risk: float = 0.3,
+        high_risk: float = 0.7,
+        explanation_model: str = None,
     ):
         """
         生成风险报告。
@@ -67,6 +71,10 @@ class ReportAgent:
         """
         # 构造输入上下文
         context = self._build_context(features, probability, shap_explanation)
+        from src.pipeline.inference import risk_level
+        context["model_name"] = model_name
+        context["explanation_model"] = explanation_model or model_name
+        context["risk_level"] = risk_level(probability, low_risk, high_risk)
 
         # 渲染 Prompt
         prompt = self.prompts.render("risk_report", **context)
@@ -94,7 +102,7 @@ class ReportAgent:
             risk_level = "高风险"
 
         # Top N 特征
-        top_features = shap_explanation.get_top_features(self.top_n)
+        top_features = shap_explanation.get_top_features(self.top_n) if shap_explanation else []
 
         # 简化特征展示（仅展示有业务含义的关键字段）
         display_features = self._select_display_features(features)

@@ -1,74 +1,40 @@
-"""
-侧边栏组件
-==========
-所有页面共享的侧边栏。
-"""
-import os
 from pathlib import Path
 
 import streamlit as st
 
 
 def render_sidebar():
-    """渲染统一的侧边栏"""
+    from app.components.runtime import ROOT, public_mode
     with st.sidebar:
-        st.markdown("## 💳 风控系统")
-        st.caption("机器学习课程综合实战")
-
+        st.markdown('<div class="brand-icon">◈</div><div class="brand-name">智能风控<span>CREDIT RISK LAB</span></div>',
+                    unsafe_allow_html=True)
+        st.caption("从模型判断，到可解释决策")
+        links = [("streamlit_app.py", "工作台", "🏠"),
+                 ("pages/1_📊_数据探索.py", "数据探索", "📊"),
+                 ("pages/2_🔧_特征工程.py", "特征工程", "🔧"),
+                 ("pages/3_🤖_模型训练.py", "模型训练", "🤖"),
+                 ("pages/4_🎯_单笔预测.py", "单笔预测", "🎯"),
+                 ("pages/5_🔍_模型解释.py", "模型解释", "🔍"),
+                 ("pages/6_💬_LLM智能助手.py", "LLM 智能助手", "💬"),
+                 ("pages/7_⚙️_系统配置.py", "系统配置", "⚙️"),
+                 ("pages/8_模型监控.py", "模型监控", "📡"),
+                 ("pages/9_AB测试.py", "A/B 模型测试", "🧪"),
+                 ("pages/10_风险情景对比.py", "风险情景对比", "🔄")]
+        for page, label, icon in links:
+            st.page_link(page, label=label, icon=icon)
         st.divider()
-
-        # 模型状态
-        st.markdown("### 📊 系统状态")
-        ROOT = Path(__file__).parent.parent.parent
-        model_dir = ROOT / "data" / "models" / "latest"
-
-        if model_dir.exists():
-            import json
-            meta_path = model_dir / "meta.json"
-            eval_path = model_dir / "eval_results.json"
-
-            if meta_path.exists():
-                meta = json.loads(meta_path.read_text(encoding="utf-8"))
-                st.caption(f"📅 训练于: {meta.get('timestamp', '')[:19]}")
-                st.caption(f"📦 训练样本: {meta.get('train_samples', 0):,}")
-                st.caption(f"🔢 特征数: {len(meta.get('feature_names', []))}")
-
-            if eval_path.exists():
-                eval_results = json.loads(eval_path.read_text(encoding="utf-8"))
-                if "ensemble" in eval_results:
-                    auc = eval_results["ensemble"].get("auc", 0)
-                    st.metric("🎯 Ensemble AUC", f"{auc:.4f}")
-                elif "xgboost" in eval_results:
-                    auc = eval_results["xgboost"].get("auc", 0)
-                    st.metric("🎯 XGBoost AUC", f"{auc:.4f}")
-        else:
-            st.warning("⚠️ 模型未训练")
-            st.caption("运行: `python scripts/train_pipeline.py --use-sample`")
-
-        st.divider()
-
-        # LLM 状态
-        st.markdown("### 🤖 LLM 状态")
-        api_key = os.environ.get("DEEPSEEK_API_KEY", "")
-        if api_key.startswith("sk-") and api_key != "sk-your-api-key-here":
-            st.success("✅ DeepSeek 已配置")
-        else:
-            st.warning("⚠️ 未配置 API Key")
-            st.caption("在 `.env` 中填入 `DEEPSEEK_API_KEY`")
-
-        st.divider()
-
-        # 帮助
-        with st.expander("📖 使用帮助"):
-            st.markdown("""
-            **页面说明：**
-            - 数据探索：了解数据
-            - 特征工程：处理特征
-            - 模型训练：训练 + 评估
-            - 单笔预测：贷款审批演示
-            - 模型解释：SHAP 分析
-            - LLM 助手：智能对话
-            - 系统配置：修改参数
-            """)
-
-        st.caption("📚 v1.0.0 · 仅用于学习研究")
+        options = ["内置演示模型"]
+        if not public_mode() and (ROOT / "data/models/latest/bundle.joblib").exists():
+            options.append("本地最新训练")
+        if st.session_state.get("artifact_source") not in options:
+            st.session_state["artifact_source"] = options[0]
+        pending = st.session_state.pop("next_artifact_source", None)
+        if pending in options:
+            st.session_state["artifact_source"] = pending
+        st.selectbox("当前模型来源", options, key="artifact_source")
+        from app.components.runtime import artifacts
+        bundle = artifacts()
+        source = bundle["meta"]["source"] if bundle else "暂无训练产物"
+        st.success("合成数据演示 · 可放心体验") if source == "合成演示数据" else st.info(source)
+        st.caption("公开展示模式" if public_mode() else "本地开发模式")
+        st.caption("本项目用于课程学习与答辩，预测结果仅供演示。")

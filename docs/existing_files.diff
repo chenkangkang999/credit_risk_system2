@@ -1,0 +1,4560 @@
+diff --git a/.gitignore b/.gitignore
+index 37fee6b..98243a9 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -19,6 +19,8 @@ env/
+ # Environment & Secrets
+ .env
+ .env.local
++.env.*
++!.env.example
+ *.pem
+ *.key
+ # Data & Models
+@@ -41,3 +43,14 @@ logs/
+ # Jupyter
+ .ipynb_checkpoints/
+ *.ipynb_meta
++
++.local/
++docs/review-baseline.json
++data/predictions/
++data/reports/
++data/metrics/
++data/shap/
++*.pt
++*.zip
++!.env.example
++!demo_assets/*.joblib
+diff --git a/app/assets/style.css b/app/assets/style.css
+index 53e9474..fb7eba1 100644
+--- a/app/assets/style.css
++++ b/app/assets/style.css
+@@ -1,96 +1,36 @@
+-/* ============================================================
+-   智能信贷风控分析系统 - 自定义样式
+-   ============================================================ */
+-
+-/* 主标题增强 */
+-h1 {
+-    color: #1a3a5c;
+-    font-weight: 700;
+-}
+-
+-/* 度量卡片美化 */
+-[data-testid="stMetric"] {
+-    background-color: #f8f9fa;
+-    padding: 15px;
+-    border-radius: 10px;
+-    border-left: 4px solid #0066cc;
+-}
+-
+-[data-testid="stMetricValue"] {
+-    font-size: 1.6rem;
+-    font-weight: 600;
+-}
+-
+-[data-testid="stMetricLabel"] {
+-    font-size: 0.85rem;
+-    font-weight: 500;
+-    color: #555;
+-}
+-
+-/* 主按钮 */
+-.stButton > button[kind="primary"] {
+-    background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+-    color: white;
+-    border: none;
+-    font-weight: 600;
+-    transition: all 0.2s;
+-}
+-
+-.stButton > button[kind="primary"]:hover {
+-    background: linear-gradient(135deg, #0052a3 0%, #003d7a 100%);
+-    transform: translateY(-1px);
+-    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+-}
+-
+-/* 信息块 */
+-[data-testid="stAlert"] {
+-    border-radius: 8px;
+-}
+-
+-/* 选项卡 */
+-.stTabs [data-baseweb="tab-list"] {
+-    gap: 8px;
+-}
+-
+-.stTabs [data-baseweb="tab"] {
+-    background-color: #f0f2f6;
+-    padding: 8px 18px;
+-    border-radius: 6px;
+-    font-weight: 500;
+-}
+-
+-.stTabs [aria-selected="true"] {
+-    background-color: #0066cc;
+-    color: white;
+-}
+-
+-/* Expander 美化 */
+-.streamlit-expanderHeader {
+-    font-weight: 600;
+-    background-color: #f8f9fa;
+-    border-radius: 6px;
+-}
+-
+-/* 侧边栏 */
+-[data-testid="stSidebar"] {
+-    background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+-}
+-
+-/* 风险等级颜色 */
+-.risk-low { color: #28a745; font-weight: bold; }
+-.risk-medium { color: #ffc107; font-weight: bold; }
+-.risk-high { color: #dc3545; font-weight: bold; }
+-
+-/* 代码块 */
+-code {
+-    color: #d63384;
+-    background-color: #f8f9fa;
+-    padding: 2px 4px;
+-    border-radius: 4px;
+-}
+-
+-/* 表格 */
+-[data-testid="stDataFrame"] {
+-    border-radius: 8px;
+-    overflow: hidden;
++:root{--ink:#172b4d;--muted:#778399;--blue:#3468ea;}
++html,body,[class*="css"]{font-family:"Microsoft YaHei","Noto Sans SC",sans-serif;}
++.stApp{background:#f7f9fd;color:var(--ink);}
++.block-container{padding:3.5rem 2rem 3rem;max-width:1480px;}
++h1{font-size:2.05rem!important;font-weight:700!important;letter-spacing:-.045em;}
++h2{font-size:1.35rem!important;}h3{font-size:1.1rem!important;}
++.page-subtitle{color:#75829b;margin-top:-.4rem;margin-bottom:1.65rem;line-height:1.7;}
++[data-testid="stSidebar"]{background:white;border-right:1px solid #e7ecf5;}
++[data-testid="stSidebarNav"]{display:none;}
++[data-testid="stSidebar"]{min-width:260px!important;max-width:280px!important;}
++.brand-icon{display:inline-flex;align-items:center;justify-content:center;background:#3468ea;color:white;width:42px;height:42px;border-radius:12px;font-size:29px;margin-right:10px;vertical-align:middle;}
++.brand-name{display:inline-block;font-size:20px;font-weight:700;vertical-align:middle;color:#173157;}
++.brand-name span{display:block;font-size:9px;letter-spacing:2px;color:#8a96aa;margin-top:3px;}
++[data-testid="stMetric"]{background:white;border:1px solid #e6ecf5;border-radius:13px;padding:18px 20px;box-shadow:0 3px 10px #17315703;}
++[data-testid="stMetricLabel"]{color:#7a879c;font-size:13px;}
++[data-testid="stMetricValue"]{font-size:1.9rem;font-weight:650;color:#234c95;}
++[data-testid="stForm"]{background:white;border:1px solid #e5ebf4;border-radius:14px;}
++[data-testid="stVerticalBlockBorderWrapper"]>div{border-color:#e6ecf5!important;border-radius:14px!important;}
++.hero{background:linear-gradient(120deg,#123c83,#396fe0);border-radius:18px;color:white;padding:30px 34px;margin:6px 0 26px;position:relative;overflow:hidden;}
++.hero:after{content:"◈";position:absolute;right:35px;top:-12px;font-size:160px;color:#ffffff13;}
++.hero small{font-size:11px;letter-spacing:2px;color:#b5cffc;}
++.hero h2{color:white!important;font-size:1.65rem!important;margin:10px 0 8px;}
++.hero p{color:#d7e6ff;font-size:14px;max-width:710px;line-height:1.8;margin:0;}
++.flow-step{padding:18px 14px;background:white;border:1px solid #e5ebf4;border-radius:12px;min-height:105px;}
++.flow-step span{font-size:11px;color:#8b9ab4;letter-spacing:1px;}.flow-step b{display:block;margin:5px 0;color:#244875;font-size:15px;}.flow-step p{color:#8a96aa;font-size:12px;margin:0;}
++.stButton>button[kind="primary"],.stFormSubmitButton>button[kind="primary"]{background:#3468ea;border:0;border-radius:9px;}
++[data-baseweb="tab-list"]{gap:14px;border-bottom:1px solid #e8edf6;margin-bottom:16px;}
++footer{visibility:hidden;}
++@media(max-width:1100px){
++ .block-container{padding-left:1.2rem;padding-right:1.2rem;}
++ [data-testid="stHorizontalBlock"]{flex-wrap:wrap;gap:1rem;}
++ [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{width:calc(50% - .5rem)!important;flex:1 1 calc(50% - .5rem)!important;min-width:0!important;}
++ [data-testid="stMetric"]{padding:12px 10px;}
++ [data-testid="stMetricValue"]{font-size:1.4rem;}
++ .hero{padding:24px;}
+ }
+diff --git a/app/components/sidebar.py b/app/components/sidebar.py
+index 9181959..13678d4 100644
+--- a/app/components/sidebar.py
++++ b/app/components/sidebar.py
+@@ -1,74 +1,40 @@
+-"""
+-侧边栏组件
+-==========
+-所有页面共享的侧边栏。
+-"""
+-import os
+ from pathlib import Path
+ 
+ import streamlit as st
+ 
+ 
+ def render_sidebar():
+-    """渲染统一的侧边栏"""
++    from app.components.runtime import ROOT, public_mode
+     with st.sidebar:
+-        st.markdown("## 💳 风控系统")
+-        st.caption("机器学习课程综合实战")
+-
+-        st.divider()
+-
+-        # 模型状态
+-        st.markdown("### 📊 系统状态")
+-        ROOT = Path(__file__).parent.parent.parent
+-        model_dir = ROOT / "data" / "models" / "latest"
+-
+-        if model_dir.exists():
+-            import json
+-            meta_path = model_dir / "meta.json"
+-            eval_path = model_dir / "eval_results.json"
+-
+-            if meta_path.exists():
+-                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+-                st.caption(f"📅 训练于: {meta.get('timestamp', '')[:19]}")
+-                st.caption(f"📦 训练样本: {meta.get('train_samples', 0):,}")
+-                st.caption(f"🔢 特征数: {len(meta.get('feature_names', []))}")
+-
+-            if eval_path.exists():
+-                eval_results = json.loads(eval_path.read_text(encoding="utf-8"))
+-                if "ensemble" in eval_results:
+-                    auc = eval_results["ensemble"].get("auc", 0)
+-                    st.metric("🎯 Ensemble AUC", f"{auc:.4f}")
+-                elif "xgboost" in eval_results:
+-                    auc = eval_results["xgboost"].get("auc", 0)
+-                    st.metric("🎯 XGBoost AUC", f"{auc:.4f}")
+-        else:
+-            st.warning("⚠️ 模型未训练")
+-            st.caption("运行: `python scripts/train_pipeline.py --use-sample`")
+-
+-        st.divider()
+-
+-        # LLM 状态
+-        st.markdown("### 🤖 LLM 状态")
+-        api_key = os.environ.get("DEEPSEEK_API_KEY", "")
+-        if api_key.startswith("sk-") and api_key != "sk-your-api-key-here":
+-            st.success("✅ DeepSeek 已配置")
+-        else:
+-            st.warning("⚠️ 未配置 API Key")
+-            st.caption("在 `.env` 中填入 `DEEPSEEK_API_KEY`")
+-
++        st.markdown('<div class="brand-icon">◈</div><div class="brand-name">智能风控<span>CREDIT RISK LAB</span></div>',
++                    unsafe_allow_html=True)
++        st.caption("从模型判断，到可解释决策")
++        links = [("streamlit_app.py", "工作台", "🏠"),
++                 ("pages/1_📊_数据探索.py", "数据探索", "📊"),
++                 ("pages/2_🔧_特征工程.py", "特征工程", "🔧"),
++                 ("pages/3_🤖_模型训练.py", "模型训练", "🤖"),
++                 ("pages/4_🎯_单笔预测.py", "单笔预测", "🎯"),
++                 ("pages/5_🔍_模型解释.py", "模型解释", "🔍"),
++                 ("pages/6_💬_LLM智能助手.py", "LLM 智能助手", "💬"),
++                 ("pages/7_⚙️_系统配置.py", "系统配置", "⚙️"),
++                 ("pages/8_模型监控.py", "模型监控", "📡"),
++                 ("pages/9_AB测试.py", "A/B 模型测试", "🧪"),
++                 ("pages/10_风险情景对比.py", "风险情景对比", "🔄")]
++        for page, label, icon in links:
++            st.page_link(page, label=label, icon=icon)
+         st.divider()
+-
+-        # 帮助
+-        with st.expander("📖 使用帮助"):
+-            st.markdown("""
+-            **页面说明：**
+-            - 数据探索：了解数据
+-            - 特征工程：处理特征
+-            - 模型训练：训练 + 评估
+-            - 单笔预测：贷款审批演示
+-            - 模型解释：SHAP 分析
+-            - LLM 助手：智能对话
+-            - 系统配置：修改参数
+-            """)
+-
+-        st.caption("📚 v1.0.0 · 仅用于学习研究")
++        options = ["内置演示模型"]
++        if not public_mode() and (ROOT / "data/models/latest/bundle.joblib").exists():
++            options.append("本地最新训练")
++        if st.session_state.get("artifact_source") not in options:
++            st.session_state["artifact_source"] = options[0]
++        pending = st.session_state.pop("next_artifact_source", None)
++        if pending in options:
++            st.session_state["artifact_source"] = pending
++        st.selectbox("当前模型来源", options, key="artifact_source")
++        from app.components.runtime import artifacts
++        bundle = artifacts()
++        source = bundle["meta"]["source"] if bundle else "暂无训练产物"
++        st.success("合成数据演示 · 可放心体验") if source == "合成演示数据" else st.info(source)
++        st.caption("公开展示模式" if public_mode() else "本地开发模式")
++        st.caption("本项目用于课程学习与答辩，预测结果仅供演示。")
+diff --git a/app/pages/1_📊_数据探索.py b/app/pages/1_📊_数据探索.py
+index 5cc1f66..a6df4df 100644
+--- a/app/pages/1_📊_数据探索.py
++++ b/app/pages/1_📊_数据探索.py
+@@ -1,201 +1,61 @@
+-"""
+-📊 数据探索页面
+-================
+-EDA：数据概览、缺失值分析、目标分布、特征分布、相关性。
+-"""
+ import sys
+ from pathlib import Path
++sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+ 
+-import numpy as np
+ import pandas as pd
++import plotly.express as px
+ import streamlit as st
+ 
+-ROOT = Path(__file__).parent.parent.parent
+-sys.path.insert(0, str(ROOT))
+-
+-from app.components.sidebar import render_sidebar
+-from app.components.chart_utils import distribution_plot, correlation_heatmap
+-
+-st.set_page_config(page_title="数据探索", page_icon="📊", layout="wide")
+-render_sidebar()
+-
+-st.title("📊 数据探索")
+-st.caption("理解你的数据是建模的第一步")
+-
+-
+-# ===== 数据加载 =====
+-from app.components.data_utils import find_data_file
+-
+-
+-@st.cache_data
+-def load_data(path_str: str, nrows: int | None = None) -> pd.DataFrame:
+-    """加载数据。path_str 必须是字符串以便 cache_data 哈希。"""
+-    path = Path(path_str)
+-    if not path.exists():
+-        return pd.DataFrame()
+-    return pd.read_csv(path, nrows=nrows)
+-
+-
+-# 探测可用的数据源
+-real_path = ROOT / "data" / "raw" / "train.csv"
+-sample_path = ROOT / "data" / "sample" / "sample.csv"
+-real_available = real_path.exists()
+-sample_available = sample_path.exists()
+-
+-if not real_available and not sample_available:
+-    st.error("❌ 未找到任何数据")
+-    st.info(
+-        "**方式 1**：从天池下载真实数据，放到 `data/raw/train.csv`\n\n"
+-        "**方式 2**：运行 `python scripts/generate_sample_data.py --n_samples 50000` 生成合成数据"
+-    )
+-    st.stop()
+-
+-# ===== 数据源选择 =====
+-options = []
+-if real_available:
+-    options.append(f"📦 真实数据 (train.csv)")
+-if sample_available:
+-    options.append(f"🧪 合成数据 (sample.csv)")
+-
+-col1, col2 = st.columns([3, 1])
+-with col1:
+-    data_source = st.radio(
+-        "选择数据源",
+-        options,
+-        index=0,  # 默认第一个：真实数据优先
+-        horizontal=True,
+-    )
+-with col2:
+-    if st.button("🔄 重新加载", use_container_width=True):
+-        st.cache_data.clear()
+-        st.rerun()
+-
+-# 真实数据 80 万行太大，可视化时只读前 N 行
+-if "真实" in data_source:
+-    target_path = real_path
+-    nrows = st.slider(
+-        "读取行数（真实数据较大，建议先用部分数据探索）",
+-        min_value=10_000, max_value=800_000, value=100_000, step=10_000,
+-    )
+-else:
+-    target_path = sample_path
+-    nrows = None
+-
+-df = load_data(str(target_path), nrows=nrows)
+-
+-if df.empty:
+-    st.error("⚠️ 数据加载失败")
+-    st.stop()
+-
+-st.success(f"✅ 已加载 {len(df):,} 条数据，{df.shape[1]} 个字段")
+-
+-# ===== Tab 1: 数据概览 =====
+-tab1, tab2, tab3, tab4 = st.tabs(["📋 数据概览", "🕳️ 缺失值分析", "🎯 目标分布", "📈 特征分析"])
+-
+-with tab1:
+-    col1, col2, col3, col4 = st.columns(4)
+-    col1.metric("总样本数", f"{len(df):,}")
+-    col2.metric("特征数", df.shape[1])
+-    col3.metric("内存占用", f"{df.memory_usage(deep=True).sum() / 1024**2:.1f} MB")
+-    if "isDefault" in df.columns:
+-        col4.metric("违约率", f"{df['isDefault'].mean():.2%}")
+-
+-    st.markdown("### 数据样本（前 10 行）")
+-    st.dataframe(df.head(10), use_container_width=True)
+-
+-    st.markdown("### 字段类型分布")
+-    dtype_counts = df.dtypes.value_counts().reset_index()
+-    dtype_counts.columns = ["类型", "数量"]
+-    st.dataframe(dtype_counts, use_container_width=True, hide_index=True)
+-
+-    with st.expander("📊 数值特征统计"):
+-        st.dataframe(df.describe().T, use_container_width=True)
+-
+-with tab2:
+-    st.markdown("### 缺失值统计")
+-    missing = df.isnull().sum()
+-    missing = missing[missing > 0].sort_values(ascending=False)
+-
+-    if missing.empty:
+-        st.success("🎉 数据无缺失！")
+-    else:
+-        missing_df = pd.DataFrame({
+-            "字段": missing.index,
+-            "缺失数": missing.values,
+-            "缺失率": (missing.values / len(df) * 100).round(2),
+-        })
+-        st.dataframe(missing_df, use_container_width=True, hide_index=True)
+-
+-        # 可视化
+-        import plotly.express as px
+-        fig = px.bar(
+-            missing_df,
+-            x="字段",
+-            y="缺失率",
+-            title="各字段缺失率（%）",
+-            color="缺失率",
+-            color_continuous_scale="Reds",
+-        )
+-        st.plotly_chart(fig, use_container_width=True)
+-
+-with tab3:
+-    if "isDefault" not in df.columns:
+-        st.warning("数据中没有 isDefault 字段，无法分析目标分布")
+-    else:
+-        col1, col2 = st.columns(2)
+-        with col1:
+-            import plotly.express as px
+-            target_dist = df["isDefault"].value_counts().reset_index()
+-            target_dist.columns = ["isDefault", "数量"]
+-            target_dist["isDefault"] = target_dist["isDefault"].map({0: "正常", 1: "违约"})
+-
+-            fig = px.pie(
+-                target_dist,
+-                values="数量",
+-                names="isDefault",
+-                title="目标变量分布",
+-                color_discrete_sequence=["#28a745", "#dc3545"],
+-            )
+-            st.plotly_chart(fig, use_container_width=True)
+-
+-        with col2:
+-            st.markdown("### 类别不平衡分析")
+-            n_pos = (df["isDefault"] == 1).sum()
+-            n_neg = (df["isDefault"] == 0).sum()
+-
+-            st.metric("正常样本数", f"{n_neg:,}")
+-            st.metric("违约样本数", f"{n_pos:,}")
+-            st.metric("不平衡比例", f"1 : {n_neg/n_pos:.2f}")
+-
+-            if n_neg / n_pos > 3:
+-                st.warning(
+-                    "⚠️ 数据存在类别不平衡，建议在模型训练时启用：\n"
+-                    "- XGBoost: `scale_pos_weight`\n"
+-                    "- MLP: 加权损失函数 / Focal Loss"
+-                )
+-
+-with tab4:
+-    st.markdown("### 单特征分布")
+-
+-    col1, col2 = st.columns([1, 3])
+-    with col1:
+-        # 仅展示数值列
+-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+-        if "isDefault" in numeric_cols:
+-            numeric_cols.remove("isDefault")
+-        if "id" in numeric_cols:
+-            numeric_cols.remove("id")
+-
+-        selected_col = st.selectbox("选择特征", numeric_cols)
+-
+-    with col2:
+-        if selected_col:
+-            fig = distribution_plot(df, selected_col, target_col="isDefault" if "isDefault" in df.columns else None)
+-            st.plotly_chart(fig, use_container_width=True)
+-
+-    st.divider()
+-
+-    st.markdown("### 特征相关性")
+-    if st.button("📊 生成相关性矩阵", help="对前 15 个数值特征计算相关性"):
+-        fig = correlation_heatmap(df, top_n=15)
+-        st.plotly_chart(fig, use_container_width=True)
++from app.components.runtime import ROOT, current_data, generated_data, init_page, public_mode, source_label
++
++_, cfg = init_page("数据探索", "从样本规模、缺失情况与变量分布，了解当前数据。", "DATA")
++if not public_mode():
++    choice = st.radio("数据来源", ["内置合成数据", "上传 CSV", "本地天池 CSV"], horizontal=True)
++    if choice == "上传 CSV":
++        uploaded = st.file_uploader("上传与项目字段一致的 CSV", type=["csv"])
++        if uploaded is not None:
++            try:
++                if uploaded.size > cfg.demo.max_upload_mb*1024*1024:
++                    raise ValueError("文件超过 20 MB；大数据请放入本地 data/raw 目录")
++                frame = pd.read_csv(uploaded)
++                from src.pipeline.orchestrator import validate_training_data
++                validate_training_data(frame)
++                if st.button("使用这份数据", type="primary"):
++                    st.session_state["active_data"] = frame
++                    st.session_state["data_label"] = "用户上传：" + uploaded.name
++                    st.success("当前数据源已更新，训练页面将使用此数据。")
++            except (ValueError, pd.errors.ParserError, UnicodeDecodeError) as error:
++                st.error(str(error))
++    elif choice == "本地天池 CSV":
++        path = ROOT / "data/raw/train.csv"
++        if path.exists():
++            if st.button("加载前 20,000 行用于页面探索"):
++                st.session_state["active_data"] = pd.read_csv(path, nrows=20000)
++                st.session_state["data_label"] = "天池数据（前 20,000 行）"
++        else:
++            st.info(f"请将 train.csv 放入 {path.parent}")
++    elif st.button("恢复合成演示数据"):
++        st.session_state.pop("active_data", None)
++        st.session_state.pop("data_label", None)
++data = current_data()
++st.caption("当前数据源：" + source_label())
++cols = st.columns(4)
++cols[0].metric("当前样本", f"{len(data):,}")
++cols[1].metric("字段数量", data.shape[1])
++cols[2].metric("缺失比例", f"{data.isna().to_numpy().mean():.1%}")
++cols[3].metric("违约样本比例", f'{data["isDefault"].mean():.1%}' if "isDefault" in data else "无标签")
++overview, quality, distribution = st.tabs(["样本概览", "数据质量", "变量分布"])
++with overview:
++    st.dataframe(data.head(100), use_container_width=True, hide_index=True)
++    st.caption("仅展示前 100 行；上传数据只用于当前本地会话。")
++with quality:
++    missing = data.isna().mean().sort_values(ascending=False).head(20)
++    st.plotly_chart(px.bar(x=missing.values, y=missing.index, orientation="h",
++                           labels={"x": "缺失比例", "y": "字段"}, color_discrete_sequence=["#3468ea"]),
++                    use_container_width=True)
++    st.write("重复记录：", int(data.duplicated().sum()))
++with distribution:
++    column = st.selectbox("选择字段", data.columns, index=list(data.columns).index("interestRate"))
++    st.plotly_chart(px.histogram(data, x=column, color="isDefault" if "isDefault" in data else None,
++                                barmode="overlay", color_discrete_sequence=["#3468ea", "#ed9b70"]),
++                    use_container_width=True)
+diff --git a/app/pages/2_🔧_特征工程.py b/app/pages/2_🔧_特征工程.py
+index c3727b9..c3a619f 100644
+--- a/app/pages/2_🔧_特征工程.py
++++ b/app/pages/2_🔧_特征工程.py
+@@ -1,201 +1,74 @@
+-"""
+-🔧 特征工程页面
+-================
+-展示预处理流程、衍生特征构造、LLM 特征建议。
+-"""
+ import sys
+ from pathlib import Path
++sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+ 
+-import numpy as np
++import copy
+ import pandas as pd
+ import streamlit as st
+ 
+-ROOT = Path(__file__).parent.parent.parent
+-sys.path.insert(0, str(ROOT))
+-
+-from app.components.sidebar import render_sidebar
+-
+-st.set_page_config(page_title="特征工程", page_icon="🔧", layout="wide")
+-render_sidebar()
+-
+-st.title("🔧 特征工程")
+-st.caption("特征工程决定模型上限")
+-
+-configs = st.session_state.get("configs")
+-if configs is None:
+-    from src.utils.config_loader import ConfigLoader
+-    configs = ConfigLoader(str(ROOT / "configs"))
+-
+-
+-# ===== 数据加载（统一回退逻辑：真实数据 > 合成数据） =====
+-from app.components.data_utils import render_data_status_or_stop
+-
+-df = render_data_status_or_stop(ROOT, prefer="auto")
+-
+-# ===== Tabs =====
+-tab1, tab2, tab3, tab4 = st.tabs([
+-    "⚙️ 预处理流程",
+-    "🔬 衍生特征",
+-    "✂️ 特征筛选",
+-    "🤖 LLM 特征建议",
+-])
+-
+-with tab1:
+-    st.markdown("## 数据预处理流程")
+-    st.markdown("以下步骤定义在 `configs/feature_config.yaml` 中：")
+-
+-    feature_cfg = configs.get("feature")
+-
+-    col1, col2 = st.columns(2)
+-    with col1:
+-        st.markdown("### 缺失值处理")
+-        st.code(f"""
+-数值列策略: {feature_cfg.missing_value.numerical_strategy}
+-类别列策略: {feature_cfg.missing_value.categorical_strategy}
+-丢弃阈值: {feature_cfg.missing_value.drop_threshold}
+-        """, language="yaml")
+-
+-        st.markdown("### 异常值处理")
+-        outlier = feature_cfg.outlier
+-        st.code(f"""
+-方法: {outlier.method}
+-下分位: {outlier.lower_quantile}
+-上分位: {outlier.upper_quantile}
+-        """, language="yaml")
+-
+-    with col2:
+-        st.markdown("### 类别编码")
+-        st.code(f"""
+-默认方法: {feature_cfg.encoding.method}
+-自定义映射: {len(feature_cfg.encoding.get('custom', {}))} 个字段
+-        """, language="yaml")
+-
+-        st.markdown("### 数值标准化")
+-        st.code(f"""
+-方法: {feature_cfg.scaling.method}
+-        """, language="yaml")
+-
+-    # 演示预处理效果
+-    st.divider()
+-    st.markdown("### 🔥 实时演示：对前 1000 条数据应用预处理")
+-
+-    if st.button("🚀 执行预处理", type="primary"):
+-        from src.data.preprocessor import Preprocessor
+-
+-        with st.spinner("处理中..."):
+-            sample_df = df.head(1000).copy()
+-            target = configs.get("data").target_column
+-            id_col = configs.get("data").id_column
+-
+-            X = sample_df.drop(columns=[target, id_col], errors="ignore")
+-
+-            prep = Preprocessor(configs.get("data"), feature_cfg)
+-            X_processed = prep.fit_transform(X)
+-
+-        col1, col2 = st.columns(2)
+-        with col1:
+-            st.markdown("**原始数据**")
+-            st.dataframe(X.head(), use_container_width=True)
+-            st.caption(f"shape: {X.shape}, 缺失值: {X.isnull().sum().sum()}")
+-
+-        with col2:
+-            st.markdown("**处理后数据**")
+-            st.dataframe(X_processed.head(), use_container_width=True)
+-            st.caption(
+-                f"shape: {X_processed.shape}, 缺失值: {X_processed.isnull().sum().sum()}"
+-            )
+-
+-        st.success("✅ 预处理完成")
+-
+-with tab2:
+-    st.markdown("## 衍生特征构造")
+-    st.markdown("基于业务理解构造新特征，常常能显著提升模型表现。")
+-
+-    feature_cfg = configs.get("feature")
+-    rules = feature_cfg.derived_features.rules
+-
+-    st.markdown(f"### 当前配置了 **{len(rules)}** 条衍生规则：")
+-
+-    for i, rule in enumerate(rules):
+-        with st.expander(f"📐 规则 {i+1}：{rule['name']}"):
+-            st.markdown(f"**业务含义**: {rule['description']}")
+-            st.code(rule["formula"], language="python")
+-
+-    st.divider()
+-
+-    if st.button("🔬 应用所有衍生规则", type="primary"):
+-        from src.features.builder import FeatureBuilder
+-
+-        with st.spinner("构造衍生特征..."):
+-            sample_df = df.head(1000).copy()
+-            builder = FeatureBuilder(feature_cfg)
+-            df_new = builder.build(sample_df)
+-
+-        new_features = builder.get_created_features()
+-        st.success(f"✅ 成功创建 {len(new_features)} 个衍生特征：{new_features}")
+-
+-        # 展示新特征的统计信息
+-        if new_features:
+-            st.markdown("### 衍生特征统计")
+-            st.dataframe(df_new[new_features].describe().T, use_container_width=True)
+-
+-with tab3:
+-    st.markdown("## 特征筛选")
+-    st.markdown("通过多种方法移除冗余、低价值特征。")
+-
+-    feature_cfg = configs.get("feature")
+-    selection_cfg = feature_cfg.feature_selection
+-
+-    st.markdown(f"**启用状态**: {'✅ 已启用' if selection_cfg.enabled else '❌ 已禁用'}")
+-
+-    if selection_cfg.enabled:
+-        st.markdown("### 筛选方法")
+-        for method in selection_cfg.methods:
+-            st.markdown(f"#### 📌 {method['name']}")
+-            st.json(dict(method))
+-
+-with tab4:
+-    st.markdown("## 🤖 LLM 智能特征建议")
+-    st.markdown("让 DeepSeek 基于数据字段和样本，提出特征工程建议。")
+-
+-    if st.button("💡 生成特征建议", type="primary", help="约 10-30 秒"):
++from app.components.runtime import current_data, init_page, llm_tools, public_mode
++from src.features.project_builder import ProjectFeatureBuilder
++from src.pipeline.adapters import ProjectPreprocessor
++
++configs, cfg = init_page("特征工程", "查看清洗效果，构造业务特征，再检查智能建议。", "FEATURES")
++data = current_data().drop(columns=["id", "isDefault"], errors="ignore")
++clean, derived, assistant = st.tabs(["预处理与 KNN", "衍生特征", "LLM 特征建议"])
++with clean:
++    st.info("沿用同学的 KNN 填充：dti（负债收入比）、revolUtil（信用利用率）。")
++    if st.button("预览前 500 行预处理效果", type="primary"):
++        feature_cfg = copy.deepcopy(configs.get("feature"))
++        feature_cfg.scaling.method = "none"
++        preprocessor = ProjectPreprocessor(copy.deepcopy(configs.get("data")), feature_cfg)
++        before = data.head(500).copy()
++        after = preprocessor.fit_transform(before)
++        st.session_state["clean_preview"] = (before, after)
++    if "clean_preview" in st.session_state:
++        before, after = st.session_state["clean_preview"]
++        st.dataframe(pd.DataFrame({"字段": ["dti", "revolUtil"],
++                                  "处理前缺失数": [before[c].isna().sum() for c in ["dti", "revolUtil"]],
++                                  "处理后缺失数": [after[c].isna().sum() for c in ["dti", "revolUtil"]]}),
++                     hide_index=True, use_container_width=True)
++        st.dataframe(after.head(20), use_container_width=True)
++        st.caption("此处仅演示处理过程；正式训练时只在训练集拟合预处理参数。")
++with derived:
++    st.dataframe(pd.DataFrame([{"特征": r.name, "业务含义": r.description, "操作": r.operation}
++                               for r in cfg.features]), hide_index=True, use_container_width=True)
++    result = ProjectFeatureBuilder(cfg.features).build(data)
++    st.dataframe(result[[r.name for r in cfg.features]].head(20), hide_index=True, use_container_width=True)
++    st.caption("比值遇到零分母时保留为缺失值，由训练集拟合的预处理器处理。")
++with assistant:
++    client, pm, llm_cfg = llm_tools()
++    from src.llm.agents.feature_agent import FeatureAgent
++    agent = FeatureAgent(client, pm, llm_cfg.agents.feature_agent)
++    if not client.configured:
++        st.info("尚未配置 API。下面可以预览并应用一条明确标记的示例建议。")
++        suggestion = {"name": "demo_income_load", "operation": "ratio", "numerator": "loanAmnt",
++                      "denominator": "annualIncome", "business_meaning": "贷款收入比（示例）"}
++        st.session_state.setdefault("feature_suggestions", {"suggestions": [suggestion]})
++    if client.configured and st.button("请求 DeepSeek 特征建议", type="primary"):
+         try:
+-            from src.llm.client import DeepSeekClient
+-            from src.llm.prompts import PromptManager
+-            from src.llm.agents.feature_agent import FeatureAgent
+-
+-            llm_cfg = configs.get("llm")
+-
+-            with st.spinner("LLM 思考中..."):
+-                client = DeepSeekClient(llm_cfg)
+-                pm = PromptManager(llm_cfg)
+-                agent = FeatureAgent(client, pm, llm_cfg.agents.feature_agent)
+-
+-                result = agent.suggest(
+-                    df=df.head(1000),
+-                    current_auc=0.72,
+-                    current_model="XGBoost",
+-                )
+-
+-            st.success("✅ 已生成建议")
+-
+-            # 展示建议
+-            suggestions = result.get("suggestions", [])
+-
+-            if suggestions:
+-                st.markdown(f"### 💡 共 {len(suggestions)} 条建议")
+-                for i, sug in enumerate(suggestions):
+-                    with st.expander(f"建议 {i+1}：{sug.get('name', '未命名')}"):
+-                        st.markdown(f"**业务含义**: {sug.get('business_meaning', '')}")
+-                        st.markdown(f"**预期效果**: {sug.get('expected_impact', '')}")
+-                        st.code(sug.get("code", ""), language="python")
+-            else:
+-                st.info("未解析到结构化建议")
+-
+-            if "general_advice" in result:
+-                st.markdown("### 整体建议")
+-                st.info(result["general_advice"])
+-
+-        except Exception as e:
+-            st.error(f"调用失败: {e}")
+-            st.caption("请检查 .env 中的 DEEPSEEK_API_KEY 配置")
++            st.session_state["feature_suggestions"] = agent.suggest(data)
++        except (ValueError, RuntimeError) as error:
++            st.error(str(error))
++    result = st.session_state.get("feature_suggestions", {})
++    for i, suggestion in enumerate(result.get("suggestions", [])):
++        with st.expander(suggestion.get("name", f"建议 {i+1}"), expanded=True):
++            st.json(suggestion)
++            if st.button("检查并应用到预览", key=f"feature_{i}"):
++                try:
++                    preview = agent.apply_suggestion(data, suggestion)
++                    st.session_state["applied_feature"] = (suggestion, preview)
++                except (ValueError, KeyError, TypeError) as error:
++                    st.error(f"无法应用建议：{error}")
++    if "applied_feature" in st.session_state:
++        suggestion, preview = st.session_state["applied_feature"]
++        st.dataframe(preview[[suggestion["name"]]].head(20), use_container_width=True)
++        if not public_mode() and st.button("保存这条规则到本地扩展配置"):
++            from app.components.settings_editor import save_settings
++            rules = [r for r in cfg.features if r.name != suggestion["name"]]
++            cfg.features = rules + [suggestion]
++            try:
++                save_settings(cfg.to_dict())
++                st.success("已保存。后续训练将使用此规则，已有模型继续使用原训练规则。")
++            except ValueError as error:
++                st.error(str(error))
+diff --git a/app/pages/3_🤖_模型训练.py b/app/pages/3_🤖_模型训练.py
+index 01325bf..b0118a9 100644
+--- a/app/pages/3_🤖_模型训练.py
++++ b/app/pages/3_🤖_模型训练.py
+@@ -1,189 +1,83 @@
+-"""
+-🤖 模型训练页面
+-================
+-模型选择、超参调整、一键训练、结果可视化。
+-"""
+-import json
+ import sys
+ from pathlib import Path
++sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+ 
+-import numpy as np
+ import pandas as pd
++import plotly.express as px
+ import streamlit as st
+ 
+-ROOT = Path(__file__).parent.parent.parent
+-sys.path.insert(0, str(ROOT))
++from app.components.runtime import ROOT, artifacts, current_data, init_page, public_mode, source_label
++from src.pipeline.orchestrator import TrainingPipeline
+ 
+-from app.components.sidebar import render_sidebar
+-from app.components.chart_utils import (
+-    confusion_matrix_heatmap,
+-    roc_curve_plot,
+-    pr_curve_plot,
+-    feature_importance_bar,
+-)
+-
+-st.set_page_config(page_title="模型训练", page_icon="🤖", layout="wide")
+-render_sidebar()
+-
+-st.title("🤖 模型训练与评估")
+-st.caption("交互式训练 XGBoost、MLP，并对比效果")
+-
+-configs = st.session_state.get("configs")
+-if configs is None:
+-    from src.utils.config_loader import ConfigLoader
+-    configs = ConfigLoader(str(ROOT / "configs"))
+-
+-# ===== 训练控制面板 =====
+-st.markdown("## ⚙️ 训练配置")
+-
+-col1, col2, col3 = st.columns(3)
+-
+-with col1:
+-    use_sample = st.checkbox("使用示例数据", value=True, help="未勾选则使用真实数据")
+-    skip_mlp = st.checkbox("跳过 MLP", value=False, help="加快调试速度")
+-
+-with col2:
+-    enable_tuning = st.checkbox("启用超参优化", value=False, help="耗时较长（数分钟）")
+-    n_trials = st.number_input("Optuna trials 数", 5, 200, 30, disabled=not enable_tuning)
+-
+-with col3:
+-    st.markdown("**当前 XGBoost 关键参数**")
+-    model_cfg = configs.get("model")
+-    xgb_params = model_cfg.xgboost.params
+-    st.caption(f"max_depth = {xgb_params.max_depth}")
+-    st.caption(f"learning_rate = {xgb_params.learning_rate}")
+-    st.caption(f"n_estimators = {xgb_params.n_estimators}")
+-
+-st.divider()
+-
+-# ===== 训练按钮 =====
+-if st.button("🚀 开始训练", type="primary", use_container_width=True):
+-    from src.pipeline.orchestrator import TrainingPipeline
+-
+-    progress_bar = st.progress(0)
+-    status_text = st.empty()
+-
+-    def progress_callback(step_name, pct):
+-        progress_bar.progress(pct / 100)
+-        status_text.text(f"⏳ 当前步骤：{step_name}")
+-
+-    try:
+-        # 临时调整配置
+-        if enable_tuning:
+-            configs.get("model").xgboost.tuning.n_trials = int(n_trials)
+-
+-        pipeline = TrainingPipeline(configs)
+-
+-        with st.spinner("训练中，请稍候..."):
+-            result = pipeline.run(
+-                use_sample=use_sample,
+-                skip_mlp=skip_mlp,
+-                skip_tuning=not enable_tuning,
+-                progress_callback=progress_callback,
+-            )
+-
+-        progress_bar.progress(1.0)
+-        status_text.empty()
+-
+-        # 保存到 session state，供后续展示
+-        st.session_state["latest_result"] = result
+-        st.success(f"✅ 训练完成！耗时 {result['duration']:.2f}s")
+-
+-    except Exception as e:
+-        st.error(f"训练失败: {e}")
+-        st.exception(e)
+-
+-st.divider()
+-
+-# ===== 评估结果展示 =====
+-st.markdown("## 📊 评估结果")
+-
+-# 加载最新结果
+-latest_dir = ROOT / "data" / "models" / "latest"
+-eval_path = latest_dir / "eval_results.json"
+-
+-if eval_path.exists():
+-    eval_results = json.loads(eval_path.read_text(encoding="utf-8"))
+-
+-    # 模型对比
+-    st.markdown("### 模型对比")
+-    cmp_data = []
+-    for model_name, metrics in eval_results.items():
+-        cmp_data.append({
+-            "模型": model_name.upper(),
+-            "AUC": f"{metrics['auc']:.4f}",
+-            "KS": f"{metrics['ks']:.4f}",
+-            "F1": f"{metrics['f1']:.4f}",
+-            "Accuracy": f"{metrics['accuracy']:.4f}",
+-            "Precision": f"{metrics['precision']:.4f}",
+-            "Recall": f"{metrics['recall']:.4f}",
+-        })
+-    st.dataframe(pd.DataFrame(cmp_data), use_container_width=True, hide_index=True)
+-
+-    # 关键指标
+-    st.markdown("### 详细指标")
+-
+-    selected_model = st.selectbox("选择模型查看详情", list(eval_results.keys()))
+-    if selected_model:
+-        metrics = eval_results[selected_model]
+-        col1, col2, col3, col4 = st.columns(4)
+-        col1.metric("AUC", f"{metrics['auc']:.4f}")
+-        col2.metric("KS", f"{metrics['ks']:.4f}")
+-        col3.metric("F1", f"{metrics['f1']:.4f}")
+-        col4.metric("准确率", f"{metrics['accuracy']:.4f}")
+-
+-        col5, col6 = st.columns(2)
+-        col5.metric("精确率", f"{metrics['precision']:.4f}")
+-        col6.metric("召回率", f"{metrics['recall']:.4f}")
+-
+-    # 提示：可以基于已保存的模型重新计算 ROC/PR/混淆矩阵
+-    with st.expander("💡 如何获得更详细的可视化（ROC、PR、混淆矩阵）"):
+-        st.markdown("""
+-        要展示 ROC 曲线、PR 曲线和混淆矩阵，需要在测试集上重新调用模型。
+-        可以：
+-        1. 切换到 "模型解释" 页面查看可视化
+-        2. 在 Notebook 中加载模型后调用 `Evaluator.get_roc_curve()` 等方法
+-        3. 启动一次新的训练（结果会缓存）
+-        """)
++configs, cfg = init_page("模型训练", "训练集学习参数，验证集选择参数，测试集只做最终评估。", "MODELS")
++if public_mode():
++    st.info("公开站点展示预训练演示结果。训练功能在本地开发模式中使用。")
+ else:
+-    st.info("📭 暂无训练结果，请先点击上方 **开始训练** 按钮。")
+-
+-# ===== 训练历史 =====
+-st.divider()
+-st.markdown("## 📜 历史训练记录")
+-
+-models_dir = ROOT / "data" / "models"
+-if models_dir.exists():
+-    runs = sorted(
+-        [d for d in models_dir.iterdir() if d.is_dir() and d.name != "latest"],
+-        reverse=True,
+-    )
+-
+-    if runs:
+-        runs_data = []
+-        for run_dir in runs[:10]:  # 最近 10 次
+-            meta_path = run_dir / "meta.json"
+-            eval_path_run = run_dir / "eval_results.json"
+-
+-            if meta_path.exists():
+-                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+-                row = {
+-                    "运行 ID": run_dir.name,
+-                    "时间": meta.get("timestamp", "")[:19],
+-                    "训练样本": meta.get("train_samples", 0),
+-                    "特征数": len(meta.get("feature_names", [])),
+-                }
+-
+-                if eval_path_run.exists():
+-                    eval_data = json.loads(eval_path_run.read_text(encoding="utf-8"))
+-                    if "ensemble" in eval_data:
+-                        row["AUC"] = round(eval_data["ensemble"]["auc"], 4)
+-                    elif "xgboost" in eval_data:
+-                        row["AUC"] = round(eval_data["xgboost"]["auc"], 4)
+-
+-                runs_data.append(row)
+-
+-        if runs_data:
+-            st.dataframe(pd.DataFrame(runs_data), use_container_width=True, hide_index=True)
+-    else:
+-        st.caption("暂无历史记录")
++    with st.container(border=True):
++        st.caption("当前训练数据：" + source_label())
++        names = st.multiselect("选择模型", ["xgboost", "lightgbm", "mlp"], default=["xgboost", "lightgbm", "mlp"])
++        left, middle, right = st.columns(3)
++        quick = left.checkbox("快速教学配置", value=True)
++        tune = middle.checkbox("使用 Optuna 调参")
++        metric = right.selectbox("调参目标", ["auc", "ks"])
++        multi = st.checkbox("同时考虑预测指标和模型深度（多目标优化）", disabled=not tune)
++        trials = st.number_input("Optuna 试验次数", 1, 50, 3, disabled=not tune)
++        st.caption("快速配置：80 棵树、MLP 最多 8 轮；基础模型配置文件保持原样。")
++        if st.button("开始训练", type="primary"):
++            try:
++                pipeline = TrainingPipeline(configs)
++                pipeline.project_cfg = cfg
++                pipeline.project_cfg.demo.trials = trials
++                pipeline.model_cfg.xgboost.tuning.metric = metric
++                pipeline.model_cfg.xgboost.tuning.multi_objective = multi
++                pipeline.tuning_metric = metric
++                progress = st.progress(0, text="准备中")
++                def callback(label, percent):
++                    progress.progress(percent, text=label)
++                result = pipeline.run(data=current_data(), use_sample=source_label() == "合成演示数据",
++                                      model_names=names, quick=quick, skip_tuning=not tune,
++                                      progress_callback=callback)
++                st.session_state["next_artifact_source"] = "本地最新训练"
++                st.session_state.pop("prediction", None)
++                st.session_state["training_notice"] = f'训练完成，耗时 {result["duration"]:.1f} 秒。'
++                st.rerun()
++            except Exception as error:
++                st.error(f"训练失败：{error}")
++bundle = artifacts()
++if st.session_state.get("training_notice"):
++    st.success(st.session_state["training_notice"])
++if bundle:
++    st.subheader("独立测试集结果")
++    st.dataframe(pd.DataFrame(bundle["eval_results"]).T, use_container_width=True)
++    st.caption(f'版本 {bundle["meta"]["run_id"]} · 训练 {bundle["meta"]["train_samples"]} / '
++               f'验证 {bundle["meta"]["val_samples"]} / 测试 {bundle["meta"]["test_samples"]} 条')
++    if bundle.get("tuning_history"):
++        with st.expander("Optuna 试验记录", expanded=True):
++            history = pd.DataFrame(bundle["tuning_history"])
++            st.dataframe(history, use_container_width=True)
++    from src.utils.metrics import Evaluator
++    from sklearn.metrics import precision_recall_curve, roc_curve
++    import numpy as np
++    selected = st.selectbox("查看评估曲线", list(bundle["models"]))
++    truth = np.asarray(bundle["y_test"])
++    probabilities = bundle["test_predictions"][selected]
++    roc_tab, ks_tab, pr_tab, matrix_tab = st.tabs(["ROC 曲线", "KS 曲线", "PR 曲线", "混淆矩阵"])
++    fpr, tpr, _ = roc_curve(truth, probabilities)
++    with roc_tab:
++        st.plotly_chart(px.line(x=fpr, y=tpr, labels={"x": "假正率 FPR", "y": "真正率 TPR"}), use_container_width=True)
++    with ks_tab:
++        frame = pd.DataFrame({"TPR": tpr, "FPR": fpr, "差值": tpr-fpr})
++        st.plotly_chart(px.line(frame, labels={"index": "阈值位置", "value": "累积比例"}), use_container_width=True)
++    with pr_tab:
++        precision, recall, _ = precision_recall_curve(truth, probabilities)
++        st.plotly_chart(px.line(x=recall, y=precision, labels={"x": "召回率", "y": "精确率"}), use_container_width=True)
++    with matrix_tab:
++        matrix = Evaluator.get_confusion_matrix(truth, probabilities, bundle["thresholds"][selected])
++        st.plotly_chart(px.imshow(matrix, text_auto=True, x=["预测正常", "预测违约"], y=["实际正常", "实际违约"], color_continuous_scale="Blues"), use_container_width=True)
++    st.caption(f"曲线使用产物中保留的 {len(truth)} 条测试样本；上表总体指标使用完整独立测试集。")
++    mlp = bundle["models"].get("mlp")
++    if mlp:
++        history = pd.DataFrame(mlp.train_history)
++        st.plotly_chart(px.line(history, y=[c for c in ["train_loss", "val_loss"] if c in history],
++                               labels={"index": "训练轮次", "value": "损失", "variable": "曲线"}),
++                        use_container_width=True)
+diff --git a/app/pages/4_🎯_单笔预测.py b/app/pages/4_🎯_单笔预测.py
+index 6d27ad6..a09b4da 100644
+--- a/app/pages/4_🎯_单笔预测.py
++++ b/app/pages/4_🎯_单笔预测.py
+@@ -1,503 +1,88 @@
+-"""
+-🎯 单笔预测页面
+-================
+-表单输入 -> 模型预测 -> SHAP 解释 -> LLM 风险报告
+-本页面是系统最具 Demo 效果的部分，建议答辩时重点演示。
+-"""
+-import json
+ import sys
+ from pathlib import Path
++sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+ 
+-import joblib
+-import numpy as np
+-import pandas as pd
+ import streamlit as st
+ 
+-ROOT = Path(__file__).parent.parent.parent
+-sys.path.insert(0, str(ROOT))
+-
+-from app.components.sidebar import render_sidebar
+-from app.components.chart_utils import gauge_chart, shap_waterfall
+-
+-st.set_page_config(page_title="单笔预测", page_icon="🎯", layout="wide")
+-render_sidebar()
+-
+-st.title("🎯 单笔贷款风险评估")
+-st.caption("模拟一个完整的贷款审批流程：录入信息 → 模型预测 → SHAP 解释 → LLM 报告")
+-
+-configs = st.session_state.get("configs")
+-if configs is None:
+-    from src.utils.config_loader import ConfigLoader
+-    configs = ConfigLoader(str(ROOT / "configs"))
+-
+-
+-# ===== 报告生成辅助函数 =====
+-def _build_complete_report(
+-    input_data: dict,
+-    proba: float,
+-    risk_level: str,
+-    recommendation: str,
+-    explanation,
+-    llm_report: str,
+-) -> str:
+-    """
+-    把申请人信息、模型预测、SHAP 解释、LLM 分析整合成一份完整的 Markdown 报告。
+-    用户下载后可以直接归档或打印。
+-    """
+-    # 字段中文映射
+-    field_labels = {
+-        "loanAmnt": "贷款金额", "term": "贷款期限（年）", "interestRate": "利率（%）",
+-        "installment": "月供", "grade": "贷款等级", "subGrade": "贷款子等级",
+-        "employmentLength": "就业年限", "homeOwnership": "房屋所有权",
+-        "annualIncome": "年收入", "verificationStatus": "验证状态",
+-        "purpose": "贷款用途代码", "dti": "负债收入比（%）",
+-        "delinquency_2years": "近2年逾期次数", "ficoRangeLow": "FICO 下限",
+-        "ficoRangeHigh": "FICO 上限", "openAcc": "未结信用额度数",
+-        "revolUtil": "循环额度利用率（%）",
+-    }
+-    home_map = {0: "租房", 1: "按揭", 2: "自有", 3: "其他"}
+-    verify_map = {0: "未验证", 1: "源已验证", 2: "已验证"}
+-
+-    timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+-    lines = [
+-        "# 🏦 智能信贷风险评估报告",
+-        "",
+-        f"**生成时间**：{timestamp}",
+-        f"**报告编号**：RPT-{pd.Timestamp.now().strftime('%Y%m%d%H%M%S')}",
+-        "",
+-        "---",
+-        "",
+-        "## 一、申请人信息",
+-        "",
+-        "| 字段 | 数值 |",
+-        "|------|------|",
+-    ]
+-    for k, label in field_labels.items():
+-        if k not in input_data:
+-            continue
+-        v = input_data[k]
+-        if k == "homeOwnership":
+-            v = home_map.get(v, v)
+-        elif k == "verificationStatus":
+-            v = verify_map.get(v, v)
+-        elif isinstance(v, float):
+-            v = f"{v:,.2f}" if v >= 1 else f"{v:.4f}"
+-        lines.append(f"| {label} | {v} |")
+-
+-    lines += [
+-        "",
+-        "## 二、模型预测结果",
+-        "",
+-        f"- **违约概率**：{proba * 100:.2f}%",
+-        f"- **风险等级**：**{risk_level}**",
+-        f"- **审批建议**：{recommendation}",
+-        "",
+-    ]
+-
+-    if explanation is not None:
+-        try:
+-            top_features = explanation.get_top_features(top_n=10)
+-            lines += [
+-                "## 三、SHAP 关键特征贡献（Top 10）",
+-                "",
+-                "| 排名 | 特征 | 取值 | SHAP 值 | 影响方向 |",
+-                "|------|------|------|---------|----------|",
+-            ]
+-            for i, feat in enumerate(top_features, 1):
+-                name = feat.get("feature", "")
+-                value = feat.get("value", "")
+-                shap_val = feat.get("shap_value", 0)
+-                direction = "↑ 推高违约风险" if shap_val > 0 else "↓ 降低违约风险"
+-                lines.append(f"| {i} | {name} | {value} | {shap_val:+.4f} | {direction} |")
+-            lines.append("")
+-        except Exception:
+-            pass
+-
+-    lines += [
+-        "## 四、LLM 智能分析报告",
+-        "",
+-        llm_report,
+-        "",
+-        "---",
+-        "",
+-        "> **免责声明**：本报告由智能信贷风控系统自动生成，仅供风控分析参考，不构成最终审批决定。"
+-        "实际审批应结合人工复核及合规审查。",
+-        "",
+-    ]
+-    return "\n".join(lines)
+-
+-
+-# ===== 加载模型 =====
+-@st.cache_resource
+-def load_xgb_model():
+-    """加载已训练的 XGBoost 模型"""
+-    from src.models.xgb_model import XGBModel
+-
+-    model_path = ROOT / "data" / "models" / "latest" / "xgb_model.json"
+-    if not model_path.exists():
+-        return None
+-
+-    model = XGBModel(configs.get("model").xgboost)
+-    model.load(str(model_path))
+-    return model
+-
+-
+-@st.cache_resource
+-def load_preprocessor():
+-    """加载预处理器"""
+-    path = ROOT / "data" / "models" / "latest" / "preprocessor.pkl"
+-    if not path.exists():
+-        return None
+-    return joblib.load(path)
+-
+-
+-@st.cache_resource
+-def load_feature_selector():
+-    """加载特征筛选器"""
+-    path = ROOT / "data" / "models" / "latest" / "feature_selector.pkl"
+-    if not path.exists():
+-        return None
+-    return joblib.load(path)
+-
+-
+-@st.cache_resource
+-def load_shap_analyzer(_model, sample_data_hash: str):
+-    """加载/构建 SHAP 分析器（缓存）"""
+-    from src.explain.shap_analyzer import SHAPAnalyzer
+-    from app.components.data_utils import find_data_file
+-
+-    # 优先用真实数据，回退到合成数据
+-    data_path, _ = find_data_file(ROOT, prefer="auto")
+-    if data_path is None:
+-        return None
+-
+-    # SHAP 背景集只需要 1000 行就够了，太大反而慢
+-    df = pd.read_csv(data_path, nrows=1000)
+-
+-    # 走完整预处理 + 特征工程
+-    prep = load_preprocessor()
+-    selector = load_feature_selector()
+-
+-    if prep is None:
+-        return None
+-
+-    target = configs.get("data").target_column
+-    id_col = configs.get("data").id_column
+-    X = df.drop(columns=[target, id_col], errors="ignore")
+-    X_processed = prep.transform(X)
+-
+-    # 特征工程
+-    from src.features.builder import FeatureBuilder
+-    builder = FeatureBuilder(configs.get("feature"))
+-    X_processed = builder.build(X_processed)
+-
+-    # 特征筛选
+-    if selector is not None:
+-        X_processed = selector.transform(X_processed)
+-
+-    # 构建 SHAP
+-    analyzer = SHAPAnalyzer()
+-    analyzer.fit(_model.model, X_processed.head(500))
+-    return analyzer
+-
+-
+-# ===== 检查模型状态 =====
+-xgb_model = load_xgb_model()
+-prep = load_preprocessor()
+-selector = load_feature_selector()
+-
+-if xgb_model is None or prep is None:
+-    st.warning("⚠️ 模型未训练，请先在 **🤖 模型训练** 页面完成训练")
+-    st.stop()
+-
+-# ===== 输入表单 =====
+-st.markdown("## 📝 申请人信息")
+-
+-with st.form("loan_application"):
+-    col1, col2, col3 = st.columns(3)
+-
+-    with col1:
+-        st.markdown("##### 💰 贷款信息")
+-        loan_amnt = st.number_input("贷款金额（元）", 1000, 500000, 30000, step=1000)
+-        term = st.selectbox("贷款期限（年）", [3, 5])
+-        interest_rate = st.slider("利率（%）", 5.0, 30.0, 13.5, step=0.1)
+-        grade = st.selectbox("贷款等级", ["A", "B", "C", "D", "E", "F", "G"], index=2)
+-        purpose = st.number_input("贷款用途代码", 0, 13, 0, help="0=债务整合, 2=信用卡 等")
+-
+-    with col2:
+-        st.markdown("##### 👤 个人信息")
+-        annual_income = st.number_input("年收入（元）", 10000, 1000000, 80000, step=5000)
+-        employment_length = st.selectbox(
+-            "就业年限",
+-            ["< 1 year", "1 year", "2 years", "3 years", "4 years", "5 years",
+-             "6 years", "7 years", "8 years", "9 years", "10+ years"],
+-            index=4,
+-        )
+-        home_ownership = st.selectbox(
+-            "房屋所有权",
+-            options=[0, 1, 2, 3],
+-            format_func=lambda x: {0: "租房", 1: "按揭", 2: "自有", 3: "其他"}[x],
+-            index=1,
+-        )
+-        verification = st.selectbox(
+-            "验证状态",
+-            options=[0, 1, 2],
+-            format_func=lambda x: {0: "未验证", 1: "源已验证", 2: "已验证"}[x],
+-            index=1,
+-        )
+-
+-    with col3:
+-        st.markdown("##### 📊 信用信息")
+-        dti = st.slider("负债收入比（%）", 0.0, 60.0, 18.0, step=0.5)
+-        fico_low = st.slider("FICO 分数下限", 580, 850, 690, step=5)
+-        delinq = st.number_input("近 2 年逾期次数", 0, 20, 0)
+-        open_acc = st.number_input("未结信用额度数", 0, 100, 11)
+-        revol_util = st.slider("循环额度利用率（%）", 0.0, 100.0, 50.0, step=1.0)
+-
+-    submitted = st.form_submit_button("🚀 开始风险评估", type="primary", use_container_width=True)
+-
+-
+-# ===== 表单提交：跑预测并写入 session_state =====
++from app.components.chart_utils import gauge_chart
++from app.components.explanations import render_single, single_explanation
++from app.components.forms import loan_form
++from app.components.runtime import (example_report, init_page, llm_tools, require_service,
++                                    risk_limits, rules_agent, saved_prediction, stream_to_state)
++from src.pipeline.inference import decision_for, risk_level
++
++_, cfg = init_page("单笔风险评估", "输入一笔贷款申请，查看模型判断、关键因素和辅助审批建议。", "PREDICTION")
++service, bundle = require_service()
++low, high = risk_limits(bundle)
++model_name = st.selectbox("评估模型", list(service.models))
++st.caption("未填写的其他字段采用该模型训练集的中位数或众数，月供按金额、期限和利率计算。")
++submitted, raw = loan_form(bundle["input_defaults"])
+ if submitted:
+-    # 构造完整的输入数据（其他字段用默认值）
+-    input_data = {
+-        "loanAmnt": loan_amnt,
+-        "term": term,
+-        "interestRate": interest_rate,
+-        "installment": loan_amnt * (interest_rate / 1200) / (1 - (1 + interest_rate / 1200) ** (-term * 12)),
+-        "grade": grade,
+-        "subGrade": grade + "3",
+-        "employmentTitle": 100000.0,
+-        "employmentLength": employment_length,
+-        "homeOwnership": home_ownership,
+-        "annualIncome": annual_income,
+-        "verificationStatus": verification,
+-        "issueDate": "2019-06-01",
+-        "purpose": purpose,
+-        "postCode": 100.0,
+-        "regionCode": 10,
+-        "dti": dti,
+-        "delinquency_2years": delinq,
+-        "ficoRangeLow": fico_low,
+-        "ficoRangeHigh": fico_low + 4,
+-        "openAcc": open_acc,
+-        "pubRec": 0.0,
+-        "pubRecBankruptcies": 0.0,
+-        "revolBal": 8000.0,
+-        "revolUtil": revol_util,
+-        "totalAcc": 25.0,
+-        "initialListStatus": 0,
+-        "applicationType": 0,
+-        "earliesCreditLine": "Jan-2010",
+-        "title": 0.0,
+-        "policyCode": 1.0,
+-    }
+-    # 匿名特征
+-    for i in range(15):
+-        input_data[f"n{i}"] = 0.0
+-
+-    df_input = pd.DataFrame([input_data])
+-
+-    with st.spinner("🔮 模型推理中..."):
+-        # 1. 预处理
+-        X = prep.transform(df_input)
+-
+-        # 2. 特征工程
+-        from src.features.builder import FeatureBuilder
+-        builder = FeatureBuilder(configs.get("feature"))
+-        X = builder.build(X)
+-
+-        # 3. 特征筛选
+-        if selector is not None:
+-            X = selector.transform(X)
+-
+-        # 4. 预测
+-        proba = xgb_model.predict_proba(X)[0]
+-        prob_pct = proba * 100
+-
+-        # 5. SHAP 解释
+-        analyzer = load_shap_analyzer(xgb_model, "v1")
+-        explanation = analyzer.explain_single(X.iloc[0]) if analyzer else None
+-
+-        # 6. 风险分级
+-        if prob_pct < 30:
+-            risk_level, risk_color, recommendation = "低风险", "green", "✅ 建议通过"
+-        elif prob_pct < 70:
+-            risk_level, risk_color, recommendation = "中风险", "orange", "⚠️ 人工复核"
+-        else:
+-            risk_level, risk_color, recommendation = "高风险", "red", "❌ 建议拒绝"
+-
+-    # 关键：把预测结果写到 session_state，确保跨 rerun 持久化
+-    st.session_state["prediction"] = {
+-        "input_data": input_data,
+-        "proba": proba,
+-        "prob_pct": prob_pct,
+-        "explanation": explanation,
+-        "risk_level": risk_level,
+-        "risk_color": risk_color,
+-        "recommendation": recommendation,
+-    }
+-    # 提交新预测时清掉旧报告，避免新预测看到旧报告
+-    st.session_state.pop("llm_report", None)
+-
+-
+-# ===== 展示结果（从 session_state 读，不依赖 submitted） =====
+-if "prediction" in st.session_state:
+-    pred = st.session_state["prediction"]
+-    input_data = pred["input_data"]
+-    proba = pred["proba"]
+-    prob_pct = pred["prob_pct"]
+-    explanation = pred["explanation"]
+-    risk_level = pred["risk_level"]
+-    risk_color = pred["risk_color"]
+-    recommendation = pred["recommendation"]
+-
+-    st.divider()
+-
+-    # 顶部操作条：清除按钮（重新评估时用）
+-    col_title, col_clear = st.columns([5, 1])
+-    with col_title:
+-        st.markdown("## 📊 评估结果")
+-    with col_clear:
+-        if st.button("🗑️ 清除结果", use_container_width=True):
+-            st.session_state.pop("prediction", None)
+-            st.session_state.pop("llm_report", None)
+-            st.rerun()
+-
+-    # 三栏：仪表盘、关键指标、SHAP
+-    col1, col2, col3 = st.columns([1.2, 1, 2])
+-
+-    with col1:
+-        fig_gauge = gauge_chart(prob_pct, title="违约概率")
+-        st.plotly_chart(fig_gauge, use_container_width=True)
+-
+-    with col2:
+-        st.markdown(f"""
+-        <div style='padding: 20px; background-color: #f8f9fa; border-radius: 10px; height: 100%;'>
+-            <h4>风险等级</h4>
+-            <h2 style='color: {risk_color};'>{risk_level}</h2>
+-            <hr>
+-            <h4>建议</h4>
+-            <h3>{recommendation}</h3>
+-            <hr>
+-            <p style='font-size: 0.85em; color: gray;'>
+-                违约概率: {prob_pct:.2f}%<br>
+-                建议月供: ¥{input_data['installment']:,.2f}
+-            </p>
+-        </div>
+-        """, unsafe_allow_html=True)
+-
+-    with col3:
+-        if explanation:
+-            fig_waterfall = shap_waterfall(
+-                explanation.feature_names,
+-                explanation.feature_values,
+-                explanation.shap_values,
+-                explanation.base_value,
+-                top_n=8,
+-            )
+-            st.plotly_chart(fig_waterfall, use_container_width=True)
++    try:
++        probability = float(service.predict_proba(raw, model_name)[0])
++        explanation, tree_name = single_explanation(service, bundle, raw, model_name)
++        prediction = {"features": raw.iloc[0].to_dict(), "probability": probability,
++                      "explanation": explanation, "explanation_model": tree_name,
++                      "model_name": model_name, "run_id": bundle["meta"]["run_id"]}
++        st.session_state["prediction"] = prediction
++        st.session_state["risk_report"] = example_report(prediction["features"], probability, model_name,
++                                                         explanation, (low, high), tree_name)
++    except (ValueError, KeyError, RuntimeError) as error:
++        st.error(str(error))
++prediction = saved_prediction()
++if prediction:
++    p = prediction["probability"]
++    st.caption("本次结果模型：" + prediction["model_name"] + " · 版本：" + prediction["run_id"])
++    left, middle, right = st.columns([1.3, 1, 1])
++    with left:
++        st.plotly_chart(gauge_chart(p*100), use_container_width=True)
++    with middle:
++        st.metric("风险等级", risk_level(p, low, high))
++        st.metric("审批建议", decision_for(p, low, high))
++    with right:
++        st.metric("预计月供", f'{prediction["features"]["installment"]:,.0f} 元')
++        st.metric("年收入", f'{prediction["features"]["annualIncome"]:,.0f} 元')
++    tab1, tab2, tab3 = st.tabs(["风险解释", "风险报告", "教学规则检查"])
++    with tab1:
++        render_single(prediction["explanation"], f'SHAP 解释对象：{prediction["explanation_model"]}')
++        if prediction["model_name"] != prediction["explanation_model"]:
++            st.caption("这里解释树子模型，不能作为融合模型或 MLP 的精确归因。")
++    with tab2:
++        client, prompts, llm_cfg = llm_tools()
++        if client.configured:
++            if st.button("使用 DeepSeek 生成真实报告", type="primary"):
++                from src.llm.agents.report_agent import ReportAgent
++                agent = ReportAgent(client, prompts, llm_cfg.agents.report_agent)
++                stream_to_state(agent.generate(prediction["features"], p, prediction["explanation"],
++                                                stream=True, model_name=prediction["model_name"],
++                                                low_risk=low, high_risk=high,
++                                                explanation_model=prediction["explanation_model"]), "risk_report")
+         else:
+-            st.info("SHAP 分析器加载失败")
+-
+-    # ===== Top 特征贡献表 =====
+-    if explanation:
+-        st.markdown("### 📋 关键特征贡献")
+-        top_features = explanation.get_top_features(top_n=10)
+-        df_top = pd.DataFrame(top_features)
+-        st.dataframe(df_top, use_container_width=True, hide_index=True)
+-
+-    # ===== LLM 风险报告 =====
+-    st.divider()
+-    st.markdown("## 📝 智能风险评估报告")
+-
+-    # 已经有报告就直接显示，没有就给生成按钮
+-    if "llm_report" not in st.session_state:
+-        col_gen, col_hint = st.columns([1, 3])
+-        with col_gen:
+-            generate_clicked = st.button(
+-                "🤖 调用 LLM 生成报告",
+-                type="primary",
+-                use_container_width=True,
+-                help="约 5-15 秒",
+-            )
+-        with col_hint:
+-            st.caption("💡 报告由 DeepSeek 基于上方预测结果和 SHAP 解释生成，含审批建议、风险因素分析、补充建议等。")
+-
+-        if generate_clicked:
++            st.info("当前展示本地模板报告，未调用 DeepSeek。")
++        report = st.session_state.get("risk_report", "")
++        st.markdown(report)
++        st.download_button("下载当前报告", report, file_name="risk_report.md", mime="text/markdown")
++    with tab3:
++        choices = ["建议通过", "人工复核", "建议拒绝"]
++        decision = st.selectbox("待检查的审批建议", choices, index=choices.index(decision_for(p, low, high)))
++        result = rules_agent().check(prediction["features"], decision, probability=p, low=low, high=high)
++        (st.success if result["is_compliant"] else st.warning)("当前教学规则检查通过" if result["is_compliant"] else "存在需要核对的事项")
++        for item in result["violations"]:
++            st.error(item["reason"])
++        for warning in result["warnings"]:
++            st.warning(warning)
++        for recommendation in result["recommendations"]:
++            st.write("• " + recommendation)
++        client, _, _ = llm_tools()
++        if client.configured and st.button("让规则检查 Agent 解释结果"):
+             try:
+-                from src.llm.client import DeepSeekClient
+-                from src.llm.prompts import PromptManager
+-                from src.llm.agents.report_agent import ReportAgent
+-
+-                llm_cfg = configs.get("llm")
+-                client = DeepSeekClient(llm_cfg)
+-                pm = PromptManager(llm_cfg)
+-                agent = ReportAgent(client, pm, llm_cfg.agents.report_agent)
+-
+-                # 流式输出
+-                report_placeholder = st.empty()
+-                full_report = ""
+-
+-                with st.spinner("LLM 分析中..."):
+-                    stream = agent.generate(
+-                        features=input_data,
+-                        probability=proba,
+-                        shap_explanation=explanation,
+-                        stream=True,
+-                    )
+-                    for chunk in stream:
+-                        full_report += chunk
+-                        report_placeholder.markdown(full_report + "▌")
+-                    report_placeholder.markdown(full_report)
+-
+-                # 写入 session_state，下次 rerun 直接显示，不会回到生成按钮
+-                st.session_state["llm_report"] = full_report
+-                st.rerun()  # 立即刷新，让下载按钮和报告进入"已生成"状态
+-
+-            except Exception as e:
+-                st.error(f"LLM 调用失败: {e}")
+-                st.caption("请检查 .env 中的 DEEPSEEK_API_KEY")
+-    else:
+-        # 已生成：展示报告 + 下载/重新生成按钮
+-        full_report = st.session_state["llm_report"]
+-
+-        # 顶部操作条
+-        col_dl1, col_dl2, col_regen = st.columns([1, 1, 1])
+-
+-        # 拼一个"完整版"报告（含输入/预测/SHAP/LLM 全部信息）
+-        complete_report = _build_complete_report(
+-            input_data=input_data,
+-            proba=proba,
+-            risk_level=risk_level,
+-            recommendation=recommendation,
+-            explanation=explanation,
+-            llm_report=full_report,
+-        )
+-
+-        with col_dl1:
+-            st.download_button(
+-                "💾 下载完整报告（推荐）",
+-                data=complete_report.encode("utf-8"),
+-                file_name=f"风险评估报告_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.md",
+-                mime="text/markdown",
+-                type="primary",
+-                use_container_width=True,
+-                help="包含申请人信息、模型预测、SHAP 解释、LLM 分析的完整 Markdown 报告",
+-            )
+-        with col_dl2:
+-            st.download_button(
+-                "📄 仅下载 LLM 报告",
+-                data=full_report.encode("utf-8"),
+-                file_name=f"LLM报告_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.md",
+-                mime="text/markdown",
+-                use_container_width=True,
+-            )
+-        with col_regen:
+-            if st.button("🔄 重新生成报告", use_container_width=True):
+-                st.session_state.pop("llm_report", None)
+-                st.rerun()
+-
+-        # 在可折叠区里展示报告，避免页面太长
+-        with st.expander("📖 查看报告内容", expanded=True):
+-            st.markdown(full_report)
++                st.session_state["compliance_llm"] = rules_agent().check(
++                    prediction["features"], decision, interest_rate=prediction["features"]["interestRate"],
++                    probability=p, low=low, high=high, use_llm=True)
++            except (ValueError, RuntimeError) as error:
++                st.error(str(error))
++        if "compliance_llm" in st.session_state:
++            st.json(st.session_state["compliance_llm"])
++        st.caption("教学规则和阈值由项目配置决定，结果供课程展示和人工复核参考。")
++else:
++    st.info("完成表单后，结果会保留在当前会话，并同步给智能助手与情景对比页面。")
+diff --git a/app/pages/5_🔍_模型解释.py b/app/pages/5_🔍_模型解释.py
+index ad07990..7d1c620 100644
+--- a/app/pages/5_🔍_模型解释.py
++++ b/app/pages/5_🔍_模型解释.py
+@@ -1,193 +1,47 @@
+-"""
+-🔍 模型解释页面
+-================
+-SHAP 全局/局部解释。
+-"""
+ import sys
+ from pathlib import Path
++sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+ 
+-import joblib
++import matplotlib.pyplot as plt
+ import numpy as np
+ import pandas as pd
++import plotly.express as px
++import shap
+ import streamlit as st
+ 
+-ROOT = Path(__file__).parent.parent.parent
+-sys.path.insert(0, str(ROOT))
++from app.components.explanations import analyzer_for, available_tree_models, render_single
++from app.components.runtime import init_page, require_service
+ 
+-from app.components.sidebar import render_sidebar
+-from app.components.chart_utils import feature_importance_bar
+-
+-st.set_page_config(page_title="模型解释", page_icon="🔍", layout="wide")
+-render_sidebar()
+-
+-st.title("🔍 模型解释 (SHAP)")
+-st.caption("理解模型为什么这么判 - 全局重要性 + 局部解释")
+-
+-configs = st.session_state.get("configs")
+-if configs is None:
+-    from src.utils.config_loader import ConfigLoader
+-    configs = ConfigLoader(str(ROOT / "configs"))
+-
+-
+-# ===== 加载模型与数据 =====
+-@st.cache_resource
+-def load_resources():
+-    from src.models.xgb_model import XGBModel
+-    from src.explain.shap_analyzer import SHAPAnalyzer
+-    from src.features.builder import FeatureBuilder
+-    from app.components.data_utils import find_data_file
+-
+-    model_path = ROOT / "data" / "models" / "latest" / "xgb_model.json"
+-    prep_path = ROOT / "data" / "models" / "latest" / "preprocessor.pkl"
+-    selector_path = ROOT / "data" / "models" / "latest" / "feature_selector.pkl"
+-
+-    if not model_path.exists() or not prep_path.exists():
+-        return None
+-
+-    # 优先用真实数据，回退到合成数据
+-    data_path, _ = find_data_file(ROOT, prefer="auto")
+-    if data_path is None:
+-        return None
+-
+-    model = XGBModel(configs.get("model").xgboost)
+-    model.load(str(model_path))
+-
+-    prep = joblib.load(prep_path)
+-    selector = joblib.load(selector_path) if selector_path.exists() else None
+-
+-    # 全量太慢，1500 行做解释足够代表性
+-    df = pd.read_csv(data_path, nrows=1500)
+-    target = configs.get("data").target_column
+-    id_col = configs.get("data").id_column
+-
+-    X = df.drop(columns=[target, id_col], errors="ignore")
+-    X_processed = prep.transform(X)
+-
+-    builder = FeatureBuilder(configs.get("feature"))
+-    X_processed = builder.build(X_processed)
+-
+-    if selector is not None:
+-        X_processed = selector.transform(X_processed)
+-
+-    # 构建 SHAP（用前 1000 条作为背景）
+-    analyzer = SHAPAnalyzer(max_background_size=500)
+-    analyzer.fit(model.model, X_processed.head(500))
+-
+-    return {
+-        "model": model,
+-        "X": X_processed,
+-        "y": df[target] if target in df.columns else None,
+-        "analyzer": analyzer,
+-    }
+-
+-
+-resources = load_resources()
+-if resources is None:
+-    st.warning("⚠️ 模型或数据未就绪，请先完成训练")
++init_page("模型解释", "从整体规律到单笔归因，观察模型如何形成判断。", "EXPLAINABILITY")
++service, bundle = require_service()
++names = available_tree_models(bundle)
++if not names:
++    st.info("请训练 XGBoost 或 LightGBM 后查看树模型解释。")
+     st.stop()
+-
+-# ===== Tabs =====
+-tab1, tab2, tab3 = st.tabs(["🌍 全局解释", "🎯 单样本解释", "📈 模型自带重要性"])
+-
+-with tab1:
+-    st.markdown("## 全局特征重要性")
+-    st.markdown("""
+-    SHAP 全局重要性 = 所有样本 SHAP 值绝对值的均值，
+-    比 XGBoost 自带的 `feature_importance_` 更准确。
+-    """)
+-
+-    n_samples = st.slider("分析样本数", 50, 1000, 200, step=50, help="样本越多越准，但耗时增加")
+-
+-    if st.button("🔬 计算全局 SHAP 值", type="primary"):
+-        with st.spinner(f"计算 {n_samples} 个样本的 SHAP 值..."):
+-            X_sample = resources["X"].sample(min(n_samples, len(resources["X"])), random_state=42)
+-            importance = resources["analyzer"].global_importance(X_sample, top_n=20)
+-
+-        st.success("✅ 计算完成")
+-
+-        col1, col2 = st.columns([2, 1])
+-        with col1:
+-            fig = feature_importance_bar(importance, top_n=20, title="SHAP 全局特征重要性")
+-            st.plotly_chart(fig, use_container_width=True)
+-
+-        with col2:
+-            st.dataframe(
+-                pd.DataFrame({
+-                    "特征": importance.index,
+-                    "SHAP 重要性": importance.values.round(4),
+-                }),
+-                use_container_width=True,
+-                hide_index=True,
+-            )
+-
+-with tab2:
+-    st.markdown("## 单样本 SHAP 解释")
+-
+-    sample_idx = st.number_input(
+-        "选择样本索引",
+-        0,
+-        len(resources["X"]) - 1,
+-        0,
+-        help="从测试集中选择一个样本进行解释"
+-    )
+-
+-    if st.button("🔍 解释此样本", type="primary"):
+-        sample = resources["X"].iloc[sample_idx]
+-
+-        with st.spinner("计算 SHAP 值..."):
+-            explanation = resources["analyzer"].explain_single(sample)
+-
+-        # 预测信息
+-        proba = resources["model"].predict_proba(sample.to_frame().T)[0]
+-        true_label = resources["y"].iloc[sample_idx] if resources["y"] is not None else None
+-
+-        col1, col2, col3 = st.columns(3)
+-        col1.metric("预测违约概率", f"{proba:.2%}")
+-        col2.metric("真实标签", f"{int(true_label)}" if true_label is not None else "未知")
+-        col3.metric("Top1 影响特征", explanation.get_top_features(1)[0]["feature"])
+-
+-        # 瀑布图
+-        from app.components.chart_utils import shap_waterfall
+-        fig = shap_waterfall(
+-            explanation.feature_names,
+-            explanation.feature_values,
+-            explanation.shap_values,
+-            explanation.base_value,
+-            top_n=10,
+-        )
+-        st.plotly_chart(fig, use_container_width=True)
+-
+-        # Top 特征表
+-        st.markdown("### Top 10 特征贡献")
+-        st.dataframe(
+-            pd.DataFrame(explanation.get_top_features(top_n=10)),
+-            use_container_width=True,
+-            hide_index=True,
+-        )
+-
+-with tab3:
+-    st.markdown("## 模型自带特征重要性")
+-    st.markdown("XGBoost 自带的 gain 重要性")
+-
+-    importance_type = st.selectbox(
+-        "重要性类型",
+-        ["gain", "weight", "cover", "total_gain", "total_cover"],
+-        help="gain: 平均增益（推荐）；weight: 使用次数；cover: 覆盖样本数",
+-    )
+-
+-    importance = resources["model"].get_feature_importance(importance_type=importance_type)
+-
+-    col1, col2 = st.columns([2, 1])
+-    with col1:
+-        fig = feature_importance_bar(importance, top_n=20, title=f"XGBoost {importance_type} 重要性")
+-        st.plotly_chart(fig, use_container_width=True)
+-
+-    with col2:
+-        st.dataframe(
+-            pd.DataFrame({
+-                "特征": importance.index[:20],
+-                "重要性": importance.values[:20].round(4),
+-            }),
+-            use_container_width=True,
+-            hide_index=True,
+-        )
++name = st.selectbox("解释模型", names)
++analyzer = analyzer_for(bundle, name)
++raw = bundle["raw_test"].head(100)
++X = service.transform(raw)
++values = analyzer.explain_batch(X)
++importance = pd.Series(np.abs(values).mean(axis=0), index=X.columns).sort_values(ascending=False)
++global_tab, summary, dependence, local = st.tabs(["全局重要性", "SHAP 分布", "特征依赖", "单笔解释与力图"])
++with global_tab:
++    top = importance.head(20).sort_values()
++    st.plotly_chart(px.bar(x=top.values, y=top.index, orientation="h",
++                           labels={"x": "平均绝对 SHAP", "y": "特征"}, color_discrete_sequence=["#3468ea"]),
++                    use_container_width=True)
++with summary:
++    shap.summary_plot(values, X, max_display=15, show=False)
++    fig = plt.gcf()
++    st.pyplot(fig, use_container_width=True)
++    plt.close(fig)
++with dependence:
++    column = st.selectbox("观察特征", X.columns)
++    index = list(X.columns).index(column)
++    fig = px.scatter(x=X[column], y=values[:, index], color=raw["isDefault"] if "isDefault" in raw else None,
++                     labels={"x": column + "（预处理后）", "y": "SHAP 值"})
++    st.plotly_chart(fig, use_container_width=True)
++with local:
++    row = st.number_input("测试样本序号", 0, len(X)-1, 0)
++    render_single(analyzer.explain_single(X.iloc[row]), f"SHAP 解释对象：{name}")
++st.caption(f"本页使用 {len(X)} 条独立测试样本。SHAP 原始输出与模型概率使用不同刻度。")
+diff --git a/app/pages/6_💬_LLM智能助手.py b/app/pages/6_💬_LLM智能助手.py
+index 0bd3313..11b4f83 100644
+--- a/app/pages/6_💬_LLM智能助手.py
++++ b/app/pages/6_💬_LLM智能助手.py
+@@ -1,274 +1,95 @@
+-"""
+-💬 LLM 智能助手页面
+-====================
+-聊天界面，支持四种模式：
+-- 风险报告
+-- 特征建议
+-- 异常分析
+-- 自由对话
+-"""
+-import json
+ import sys
+ from pathlib import Path
++sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+ 
++import numpy as np
+ import pandas as pd
+ import streamlit as st
+ 
+-ROOT = Path(__file__).parent.parent.parent
+-sys.path.insert(0, str(ROOT))
+-
+-from app.components.sidebar import render_sidebar
+-
+-st.set_page_config(page_title="LLM 智能助手", page_icon="💬", layout="wide")
+-render_sidebar()
+-
+-st.title("💬 LLM 智能助手")
+-st.caption("基于 DeepSeek 大模型的风控领域 AI 助手")
+-
+-configs = st.session_state.get("configs")
+-if configs is None:
+-    from src.utils.config_loader import ConfigLoader
+-    configs = ConfigLoader(str(ROOT / "configs"))
+-
+-
+-# ===== 检查 API Key =====
+-import os
+-api_key = os.environ.get("DEEPSEEK_API_KEY", "")
+-if not api_key.startswith("sk-") or api_key == "sk-your-api-key-here":
+-    st.error("⚠️ 未配置 DeepSeek API Key")
+-    st.info("""
+-    **配置步骤：**
+-    1. 访问 https://platform.deepseek.com 注册账号
+-    2. 生成 API Key
+-    3. 在项目根目录的 `.env` 文件中填入：
+-       ```
+-       DEEPSEEK_API_KEY=sk-your-real-key-here
+-       ```
+-    4. 重启 Streamlit 应用
+-    """)
+-    st.stop()
+-
+-
+-# ===== 初始化客户端 =====
+-@st.cache_resource
+-def get_llm_client():
+-    from src.llm.client import DeepSeekClient
+-    from src.llm.prompts import PromptManager
+-    return DeepSeekClient(configs.get("llm")), PromptManager(configs.get("llm"))
+-
+-
+-client, prompt_mgr = get_llm_client()
+-
+-
+-# ===== 模式选择 =====
+-mode = st.radio(
+-    "选择对话模式",
+-    ["💬 自由对话", "📝 风险报告", "💡 特征建议", "🔬 异常案例分析"],
+-    horizontal=True,
+-)
+-
+-st.divider()
+-
+-
+-# ===== 模式：自由对话 =====
+-if mode == "💬 自由对话":
+-    st.markdown("##### 💡 你可以问我关于数据、模型、风控业务的任何问题")
+-
+-    # 初始化对话历史
+-    if "chat_messages" not in st.session_state:
+-        st.session_state.chat_messages = []
+-
+-    # 渲染历史
+-    for msg in st.session_state.chat_messages:
+-        with st.chat_message(msg["role"]):
+-            st.markdown(msg["content"])
+-
+-    # 输入框
+-    if user_input := st.chat_input("请输入您的问题..."):
+-        # 显示用户消息
+-        st.session_state.chat_messages.append({"role": "user", "content": user_input})
++from app.components.explanations import single_explanation
++from app.components.runtime import (current_data, example_report, init_page, llm_tools,
++                                    require_service, risk_limits, saved_prediction, stream_to_state)
++
++init_page("LLM 智能助手", "围绕当前数据、模型和申请记录，理解预测背后的业务含义。", "ASSISTANT")
++service, bundle = require_service()
++client, prompts, cfg = llm_tools()
++prediction = saved_prediction()
++if not client.configured:
++    st.info("当前为示例模式，未调用 DeepSeek。配置本地 .env 后可使用真实对话与分析。")
++mode = st.radio("助手模式", ["自由对话", "风险报告", "特征建议", "异常分析"], horizontal=True)
++if mode == "自由对话":
++    key = "chat_history"
++    st.session_state.setdefault(key, [])
++    for message in st.session_state[key]:
++        with st.chat_message(message["role"]):
++            st.markdown(message["content"])
++    question = st.chat_input("例如：AUC 和 KS 有什么区别？")
++    if question:
++        history = st.session_state[key]
+         with st.chat_message("user"):
+-            st.markdown(user_input)
+-
+-        # 准备上下文
+-        try:
+-            # 加载系统状态作为上下文
+-            latest_dir = ROOT / "data" / "models" / "latest"
+-            model_info = {}
+-            dataset_info = {}
+-
+-            eval_path = latest_dir / "eval_results.json"
+-            if eval_path.exists():
+-                eval_data = json.loads(eval_path.read_text(encoding="utf-8"))
+-                model_info = {
+-                    "xgb_auc": round(eval_data.get("xgboost", {}).get("auc", 0), 4),
+-                    "mlp_auc": round(eval_data.get("mlp", {}).get("auc", 0), 4),
+-                    "ensemble_auc": round(eval_data.get("ensemble", {}).get("auc", 0), 4),
+-                }
+-
+-            meta_path = latest_dir / "meta.json"
+-            if meta_path.exists():
+-                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+-                dataset_info = {
+-                    "n_samples": meta.get("train_samples", 0),
+-                    "n_features": len(meta.get("feature_names", [])),
+-                    "default_rate": "约 20%",
+-                }
+-
+-            # 渲染 Prompt
+-            prompt = prompt_mgr.render(
+-                "chat_assistant",
+-                user_question=user_input,
+-                model_info=model_info if model_info else None,
+-                dataset_info=dataset_info if dataset_info else None,
+-            )
+-            system_prompt = prompt_mgr.get_system_role("chat_assistant")
+-
+-            # 历史对话（最多保留最近 N 轮）
+-            max_history = configs.get("llm").agents.chat_agent.max_history_turns
+-            history = []
+-            for h in st.session_state.chat_messages[-max_history * 2:-1]:
+-                history.append({"role": h["role"], "content": h["content"]})
+-
+-            # 流式输出
+-            with st.chat_message("assistant"):
+-                placeholder = st.empty()
+-                full_response = ""
+-                for chunk in client.stream_chat(prompt, system_prompt=system_prompt, history=history):
+-                    full_response += chunk
+-                    placeholder.markdown(full_response + "▌")
+-                placeholder.markdown(full_response)
+-
+-            st.session_state.chat_messages.append(
+-                {"role": "assistant", "content": full_response}
+-            )
+-
+-        except Exception as e:
+-            with st.chat_message("assistant"):
+-                st.error(f"调用失败: {e}")
+-
+-    # 清空按钮
+-    if st.session_state.chat_messages:
+-        if st.button("🗑️ 清空对话"):
+-            st.session_state.chat_messages = []
+-            st.rerun()
+-
+-
+-# ===== 模式：风险报告 =====
+-elif mode == "📝 风险报告":
+-    st.info("ℹ️ 完整的风险报告功能在 **🎯 单笔预测** 页面，本处提供快速演示。")
+-    st.markdown("##### 输入贷款信息，让 LLM 生成风险评估报告")
+-
+-    col1, col2, col3 = st.columns(3)
+-    with col1:
+-        loan_amnt = st.number_input("贷款金额", 1000, 500000, 30000)
+-        annual_income = st.number_input("年收入", 10000, 1000000, 80000)
+-    with col2:
+-        interest_rate = st.slider("利率(%)", 5.0, 30.0, 13.5)
+-        dti = st.slider("DTI(%)", 0.0, 60.0, 18.0)
+-    with col3:
+-        fico = st.slider("FICO 分数", 580, 850, 690)
+-        # 简单计算"违约概率"用于演示
+-        proba = min(max(0.05 + (interest_rate - 5) * 0.02 + dti * 0.005 - (fico - 580) * 0.001, 0.0), 0.95)
+-        st.metric("模拟违约概率", f"{proba:.2%}")
+-
+-    if st.button("🤖 生成简化报告", type="primary"):
+-        prompt = f"""请基于以下信贷申请信息，生成一份简短的风险评估意见（300字以内）：
+-
+-- 贷款金额: ¥{loan_amnt:,}
+-- 利率: {interest_rate}%
+-- 年收入: ¥{annual_income:,}
+-- 负债收入比: {dti}%
+-- FICO 分数: {fico}
+-- 模型预测违约概率: {proba:.2%}
+-
+-请给出: 1) 风险等级 2) 主要担忧点 3) 审批建议
+-"""
+-        try:
+-            with st.spinner("生成中..."):
+-                placeholder = st.empty()
+-                full = ""
+-                for chunk in client.stream_chat(prompt):
+-                    full += chunk
+-                    placeholder.markdown(full + "▌")
+-                placeholder.markdown(full)
+-        except Exception as e:
+-            st.error(f"调用失败: {e}")
+-
+-
+-# ===== 模式：特征建议 =====
+-elif mode == "💡 特征建议":
+-    st.markdown("##### 让 AI 帮你提出特征工程建议")
+-
+-    if st.button("🚀 生成建议", type="primary"):
+-        try:
+-            from src.llm.agents.feature_agent import FeatureAgent
+-            from app.components.data_utils import find_data_file
+-
+-            # 优先用真实数据，回退到合成数据
+-            data_path, source = find_data_file(ROOT, prefer="auto")
+-            if data_path is None:
+-                st.error(
+-                    "❌ 未找到任何数据。请将真实数据放到 `data/raw/train.csv` "
+-                    "或运行 `python scripts/generate_sample_data.py` 生成合成数据。"
+-                )
+-                st.stop()
+-
+-            # 给 LLM 的样本不需要太多，1000 条够看分布
+-            df = pd.read_csv(data_path, nrows=1000)
+-            st.caption(f"使用数据来源：{source}（{len(df):,} 行）")
+-
+-            agent = FeatureAgent(client, prompt_mgr, configs.get("llm").agents.feature_agent)
+-
+-            with st.spinner("AI 思考中..."):
+-                result = agent.suggest(df=df, current_auc=0.72)
+-
+-            suggestions = result.get("suggestions", [])
+-            if suggestions:
+-                for i, sug in enumerate(suggestions):
+-                    with st.expander(f"💡 建议 {i+1}: {sug.get('name', '未命名')}"):
+-                        st.markdown(f"**业务含义**: {sug.get('business_meaning', '')}")
+-                        st.markdown(f"**预期效果**: {sug.get('expected_impact', '')}")
+-                        st.code(sug.get("code", ""), language="python")
+-
+-            if "general_advice" in result:
+-                st.info(f"**整体建议**: {result['general_advice']}")
+-        except Exception as e:
+-            st.error(f"调用失败: {e}")
+-
+-
+-# ===== 模式：异常分析 =====
+-elif mode == "🔬 异常案例分析":
+-    st.markdown("##### 分析模型预测错误的高置信度案例")
+-    st.info("此功能需要先训练模型，并在测试集上评估。完整版可访问 src/llm/agents/case_agent.py")
+-
+-    st.markdown("**示例：分析一个 False Negative（漏判违约）**")
+-
+-    if st.button("🔬 演示分析", type="primary"):
+-        prompt = """请分析以下机器学习模型预测错误的案例：
+-
+-【真实情况】客户最终违约（label=1）
+-【模型预测】违约概率仅 5%（高置信度的错误判断）
+-
+-【客户特征】
+-- 贷款金额: ¥45,000
+-- 年收入: ¥120,000（属于较高收入）
+-- FICO 分数: 750（信用良好）
+-- DTI: 12%（负债比例低）
+-- 就业年限: 8 years
+-- 房屋: 自有
+-- 历史逾期: 0次
+-
+-请从数据、特征、模型、业务四个角度分析：为什么模型预测错误？
+-并给出 3 条改进建议。
+-"""
+-        try:
+-            with st.spinner("分析中..."):
+-                placeholder = st.empty()
+-                full = ""
+-                for chunk in client.stream_chat(prompt):
+-                    full += chunk
+-                    placeholder.markdown(full + "▌")
+-                placeholder.markdown(full)
+-        except Exception as e:
+-            st.error(f"调用失败: {e}")
++            st.markdown(question)
++        answer = ""
++        with st.chat_message("assistant"):
++            if client.configured:
++                data = current_data()
++                context = prompts.render(
++                    "chat_assistant", user_question=question,
++                    dataset_info={"n_samples": len(data), "n_features": data.shape[1],
++                                  "default_rate": f'{data["isDefault"].mean():.1%}'},
++                    model_info={"xgb_auc": bundle["eval_results"].get("xgboost", {}).get("auc"),
++                                "mlp_auc": bundle["eval_results"].get("mlp", {}).get("auc"),
++                                "ensemble_auc": bundle["eval_results"].get("ensemble", {}).get("auc")})
++                answer = stream_to_state(client.stream_chat(context,
++                                          system_prompt=prompts.get_system_role("chat_assistant"),
++                                          history=history), "last_chat")
++            else:
++                if "SHAP" in question.upper():
++                    answer = "【示例答复】SHAP 用来分解特征对模型输出的贡献。正值推动风险输出上升，负值推动下降；贡献值不能直接当作概率。"
++                elif "KNN" in question.upper():
++                    answer = "【示例答复】项目沿用 KNN 填充 dti 和 revolUtil，利用相似样本补足缺失值。正式训练只使用训练集拟合。"
++                else:
++                    answer = "【示例答复】AUC 描述整体排序能力，KS 描述两类样本累积分布的最大差异。本项目在独立测试集计算这些指标。"
++                st.markdown(answer)
++        if answer:
++            history.extend([{"role": "user", "content": question}, {"role": "assistant", "content": answer}])
++            st.session_state[key] = history[-cfg.agents.chat_agent.max_history_turns*2:]
++elif mode == "风险报告":
++    if not prediction:
++        st.info("请先到单笔预测页面评估一笔申请。")
++    else:
++        st.markdown(st.session_state.get("risk_report") or example_report(
++            prediction["features"], prediction["probability"], prediction["model_name"],
++            prediction["explanation"], risk_limits(bundle), prediction["explanation_model"]))
++        st.page_link("pages/4_🎯_单笔预测.py", label="进入单笔预测生成或下载报告")
++elif mode == "特征建议":
++    st.write("特征建议会使用当前数据的字段和统计信息，不发送原始客户记录。")
++    st.page_link("pages/2_🔧_特征工程.py", label="进入特征工程，预览并应用建议")
++else:
++    from src.llm.agents.case_agent import CaseAgent
++    agent = CaseAgent(client, prompts, cfg.agents.case_agent)
++    name = st.selectbox("诊断模型", list(service.models))
++    raw = bundle["raw_test"]
++    y = np.asarray(bundle["y_test"])
++    probability = np.asarray(bundle["test_predictions"][name])
++    anomalies = agent.find_anomalies(y, probability, raw, threshold=bundle["thresholds"].get(name, 0.5))
++    st.caption(f"高置信度错误案例：{len(anomalies)} 条")
++    if len(anomalies):
++        st.dataframe(anomalies, hide_index=True, use_container_width=True)
++    else:
++        st.info("当前抽样未发现达到阈值的高置信度错误；下面可以查看普通错误案例。")
++    wrong = np.flatnonzero((probability >= bundle["thresholds"].get(name, 0.5)) != y)
++    if not len(wrong):
++        st.info("当前测试样本中没有预测错误案例。")
++    else:
++        row = st.selectbox("选择错误案例序号", wrong.tolist())
++        sample = raw.iloc[[row]]
++        explanation, tree = single_explanation(service, bundle, sample, name)
++        st.write(f"真实标签：{y[row]}，违约概率：{probability[row]:.2%}")
++        if client.configured and explanation and st.button("请求 DeepSeek 分析案例", type="primary"):
++            stream_to_state(agent.analyze(sample.iloc[0].to_dict(), int(y[row]),
++                                          float(probability[row]), explanation, stream=True,
++                                          threshold=bundle["thresholds"].get(name, 0.5)), "case_report")
++        if "case_report" in st.session_state:
++            st.markdown(st.session_state["case_report"])
++        elif not client.configured:
++            st.markdown("**示例诊断**：这是一个错误案例，应结合数据质量、特征覆盖和模型泛化能力排查。没有调用 LLM，不能据此确认错误根因。")
+diff --git a/app/pages/7_⚙️_系统配置.py b/app/pages/7_⚙️_系统配置.py
+index 486f777..0440ffd 100644
+--- a/app/pages/7_⚙️_系统配置.py
++++ b/app/pages/7_⚙️_系统配置.py
+@@ -1,135 +1,50 @@
+-"""
+-⚙️ 系统配置页面
+-================
+-在线查看、修改 YAML 配置（教学演示用）。
+-"""
+ import sys
+ from pathlib import Path
++sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+ 
++import os
+ import streamlit as st
+ import yaml
+ 
+-ROOT = Path(__file__).parent.parent.parent
+-sys.path.insert(0, str(ROOT))
+-
+-from app.components.sidebar import render_sidebar
+-
+-st.set_page_config(page_title="系统配置", page_icon="⚙️", layout="wide")
+-render_sidebar()
+-
+-st.title("⚙️ 系统配置")
+-st.caption("查看和编辑系统的所有 YAML 配置文件")
+-
+-st.warning("⚠️ **教学演示页面** - 修改配置会影响后续训练，请谨慎操作。生产环境建议通过版本控制管理配置。")
+-
+-# ===== 配置文件列表 =====
+-config_dir = ROOT / "configs"
+-config_files = sorted(config_dir.glob("*.yaml"))
+-
+-if not config_files:
+-    st.error(f"未找到配置文件: {config_dir}")
+-    st.stop()
+-
+-selected_file = st.selectbox(
+-    "选择配置文件",
+-    config_files,
+-    format_func=lambda x: x.name,
+-)
+-
+-# ===== 显示文件内容 =====
+-content = selected_file.read_text(encoding="utf-8")
+-
+-tab1, tab2 = st.tabs(["📝 编辑模式", "🌳 树形视图"])
+-
+-with tab1:
+-    st.markdown(f"### 文件: `configs/{selected_file.name}`")
+-
+-    edited = st.text_area(
+-        "配置内容",
+-        value=content,
+-        height=600,
+-        key=f"editor_{selected_file.name}",
+-    )
+-
+-    col1, col2, col3 = st.columns([1, 1, 4])
+-    with col1:
+-        if st.button("✅ 验证 YAML", use_container_width=True):
++from app.components.runtime import ROOT, init_page, llm_tools, public_mode
++from app.components.settings_editor import save_settings, validate_settings
++
++configs, cfg = init_page("系统配置", "查看基础配置与扩展规则，检查 DeepSeek 连接状态。", "SETTINGS")
++settings_tab, original, templates, api = st.tabs(["本地扩展配置", "基础配置（只读）", "提示词模板", "API 状态"])
++with settings_tab:
++    st.caption("修改保存到 .local/settings.yaml，仅影响之后的训练；同学的基础配置不写回，已有模型继续使用原训练规则。")
++    content = yaml.safe_dump(cfg.to_dict(), allow_unicode=True, sort_keys=False)
++    edited = st.text_area("扩展规则 YAML", content, height=420, disabled=public_mode())
++    if not public_mode():
++        a, b = st.columns(2)
++        if a.button("校验格式和关键参数"):
+             try:
+-                yaml.safe_load(edited)
+-                st.success("✅ YAML 格式正确")
+-            except yaml.YAMLError as e:
+-                st.error(f"❌ YAML 格式错误: {e}")
+-
+-    with col2:
+-        if st.button("💾 保存", type="primary", use_container_width=True):
++                validate_settings(yaml.safe_load(edited))
++                st.success("校验通过")
++            except (ValueError, yaml.YAMLError) as error:
++                st.error(str(error))
++        if b.button("保存本地配置", type="primary"):
+             try:
+-                # 验证后保存
+-                yaml.safe_load(edited)
+-                selected_file.write_text(edited, encoding="utf-8")
+-                st.success(f"✅ 已保存到 {selected_file.name}")
+-                st.balloons()
+-                # 清缓存以重新加载
+-                st.cache_resource.clear()
+-            except yaml.YAMLError as e:
+-                st.error(f"❌ YAML 格式错误，未保存: {e}")
+-            except Exception as e:
+-                st.error(f"❌ 保存失败: {e}")
+-
+-with tab2:
+-    st.markdown(f"### 文件: `configs/{selected_file.name}` (树形视图)")
+-    try:
+-        data = yaml.safe_load(content)
+-        st.json(data, expanded=True)
+-    except yaml.YAMLError as e:
+-        st.error(f"YAML 解析失败: {e}")
+-
+-# ===== Prompt 模板 =====
+-st.divider()
+-st.markdown("## 📜 Prompt 模板")
+-
+-prompts_dir = config_dir / "prompts"
+-if prompts_dir.exists():
+-    prompt_files = sorted(prompts_dir.glob("*.j2"))
+-
+-    if prompt_files:
+-        selected_prompt = st.selectbox(
+-            "选择 Prompt 模板",
+-            prompt_files,
+-            format_func=lambda x: x.name,
+-        )
+-
+-        prompt_content = selected_prompt.read_text(encoding="utf-8")
+-        st.text_area(
+-            "模板内容",
+-            value=prompt_content,
+-            height=400,
+-            key=f"prompt_{selected_prompt.name}",
+-            help="Jinja2 模板：{{ variable }} 表示插值，{% for %} 等表示控制结构",
+-        )
+-
+-# ===== 环境变量 =====
+-st.divider()
+-st.markdown("## 🔐 环境变量")
+-
+-import os
+-
+-env_vars = {
+-    "DEEPSEEK_API_KEY": os.environ.get("DEEPSEEK_API_KEY", ""),
+-    "DEEPSEEK_BASE_URL": os.environ.get("DEEPSEEK_BASE_URL", ""),
+-    "DEEPSEEK_MODEL": os.environ.get("DEEPSEEK_MODEL", ""),
+-    "LOG_LEVEL": os.environ.get("LOG_LEVEL", ""),
+-}
+-
+-env_data = []
+-for key, value in env_vars.items():
+-    if "KEY" in key and value:
+-        # 脱敏显示
+-        masked = value[:6] + "..." + value[-4:] if len(value) > 12 else "***"
+-        env_data.append({"变量名": key, "值": masked})
++                save_settings(yaml.safe_load(edited))
++                st.success("本地扩展配置已保存，重新打开页面后生效。")
++            except (ValueError, yaml.YAMLError) as error:
++                st.error(str(error))
+     else:
+-        env_data.append({"变量名": key, "值": value or "(未设置)"})
+-
+-import pandas as pd
+-st.dataframe(pd.DataFrame(env_data), use_container_width=True, hide_index=True)
+-
+-st.caption("💡 修改环境变量请编辑项目根目录的 `.env` 文件后重启应用")
++        st.info("公开演示站点只提供配置查看。")
++with original:
++    choice = st.selectbox("基础配置文件", ["data_config.yaml", "feature_config.yaml", "model_config.yaml",
++                                        "pipeline_config.yaml", "llm_config.yaml"])
++    st.code((ROOT / "configs" / choice).read_text(encoding="utf-8"), language="yaml")
++with templates:
++    files = sorted((ROOT / "configs/prompts").glob("*.j2"))
++    selected = st.selectbox("模板", [p.name for p in files])
++    st.code((ROOT / "configs/prompts" / selected).read_text(encoding="utf-8"))
++with api:
++    client, _, _ = llm_tools()
++    st.write("DeepSeek 密钥状态：" + ("已配置（不显示内容）" if client.configured else "未配置或处于公开展示模式"))
++    st.write("模型：" + str(configs.get("llm").deepseek.model))
++    if not public_mode():
++        st.caption(f"密钥填写位置：{ROOT / '.env'}。修改后重启应用。")
++        if client.configured and st.button("测试连接（会发起一次少量 token 请求）"):
++            ok = client.health_check()
++            (st.success if ok else st.error)("连接成功" if ok else "连接失败，请检查密钥、余额和网络")
+diff --git a/app/streamlit_app.py b/app/streamlit_app.py
+index 720bb95..ecb8c04 100644
+--- a/app/streamlit_app.py
++++ b/app/streamlit_app.py
+@@ -1,185 +1,69 @@
+-"""
+-智能信贷风控分析系统 - Streamlit 主入口
+-======================================
+-运行: streamlit run app/streamlit_app.py
+-"""
+ import sys
+ from pathlib import Path
+ 
+-import streamlit as st
+-
+-# 添加项目根到 sys.path（Streamlit 多页面应用必需）
+-ROOT = Path(__file__).parent.parent
+-sys.path.insert(0, str(ROOT))
+-
+-# ===== 页面配置 =====
+-st.set_page_config(
+-    page_title="智能信贷风控分析系统",
+-    page_icon="💳",
+-    layout="wide",
+-    initial_sidebar_state="expanded",
+-    menu_items={
+-        "About": "## 智能信贷风控分析系统\n机器学习课程综合实战项目"
+-    }
+-)
+-
+-# ===== 加载样式 =====
+-css_path = Path(__file__).parent / "assets" / "style.css"
+-if css_path.exists():
+-    st.markdown(f"<style>{css_path.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
+-
+-# ===== 全局初始化（带缓存） =====
+-@st.cache_resource
+-def init_system():
+-    """初始化系统（仅在首次访问时执行）"""
+-    from src.utils.config_loader import ConfigLoader
+-    return ConfigLoader(str(ROOT / "configs"))
+-
+-
+-configs = init_system()
+-st.session_state["configs"] = configs
+-
+-# ===== 侧边栏 =====
+-from app.components.sidebar import render_sidebar
+-render_sidebar()
+-
+-# ===== 主页面 =====
+-st.title("💳 智能信贷风控分析系统")
+-st.markdown("##### 基于 XGBoost + PyTorch MLP + SHAP + DeepSeek LLM 的端到端风控解决方案")
+-
+-# 系统状态指示
+-status_col1, status_col2, status_col3, status_col4 = st.columns(4)
+-
+-# 检查模型状态
+-model_dir = ROOT / "data" / "models" / "latest"
+-has_model = model_dir.exists() and any(model_dir.glob("*.json"))
+-
+-# 检查数据状态
+-sample_data = ROOT / "data" / "sample" / "sample.csv"
+-real_data = ROOT / "data" / "raw" / "train.csv"
+-has_data = sample_data.exists() or real_data.exists()
+-
+-# 检查 LLM 配置
+-import os
+-has_api_key = os.environ.get("DEEPSEEK_API_KEY", "").startswith("sk-") and \
+-              os.environ.get("DEEPSEEK_API_KEY") != "sk-your-api-key-here"
+-
+-with status_col1:
+-    st.metric(
+-        "📦 数据状态",
+-        "已就绪" if has_data else "未就绪",
+-        delta="✅ OK" if has_data else "⚠️ 需要数据",
+-        delta_color="normal" if has_data else "inverse",
+-    )
+-with status_col2:
+-    st.metric(
+-        "🤖 模型状态",
+-        "已训练" if has_model else "未训练",
+-        delta="✅ OK" if has_model else "⚠️ 需训练",
+-        delta_color="normal" if has_model else "inverse",
+-    )
+-with status_col3:
+-    st.metric(
+-        "🔑 LLM API",
+-        "已配置" if has_api_key else "未配置",
+-        delta="✅ OK" if has_api_key else "⚠️ 需 API Key",
+-        delta_color="normal" if has_api_key else "inverse",
+-    )
+-with status_col4:
+-    st.metric("⚙️ 系统版本", "v1.0.0", delta="学习版")
+-
+-st.divider()
+-
+-# ===== 项目介绍 =====
+-st.markdown("""
+-## 🎯 项目简介
+-
+-本系统是一个**完整的金融风控分析平台**，模拟互联网金融公司的贷款审批流程，
+-集成了机器学习课程涵盖的全部核心技术。
++sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+ 
+-### 系统能力
+-
+-| 模块 | 技术栈 | 应用场景 |
+-|------|--------|---------|
+-| 数据探索 | Pandas + Plotly | 数据质量分析、特征分布可视化 |
+-| 特征工程 | Sklearn | 缺失值/异常值/编码/标准化 |
+-| 模型训练 | XGBoost + PyTorch MLP | 双模型融合，AUC > 0.74 |
+-| 超参优化 | Optuna | 自动搜索最优超参 |
+-| 模型解释 | SHAP | 全局/局部特征贡献分析 |
+-| 智能助手 | DeepSeek LLM | 风险报告 / 特征建议 / 案例诊断 |
+-
+-### 数据集
+-
+-> **天池"零基础入门金融风控-贷款违约预测"**
+-> 来自某信贷平台 80 万条贷款记录，47 列特征，预测用户违约概率。
+-""")
+-
+-st.divider()
+-
+-# ===== 快速导航 =====
+-st.markdown("## 🚀 快速开始")
+-
+-quick_col1, quick_col2 = st.columns(2)
+-
+-with quick_col1:
+-    st.markdown("""
+-    ### 第一次使用？
+-    1. **生成示例数据**
+-       ```bash
+-       python scripts/generate_sample_data.py --n_samples 50000
+-       ```
+-    2. **训练模型**
+-       ```bash
+-       python scripts/train_pipeline.py --use-sample
+-       ```
+-    3. **配置 LLM**
+-       在 `.env` 中填入你的 DeepSeek API Key
+-    """)
+-
+-with quick_col2:
+-    st.markdown("""
+-    ### 使用本系统
+-    通过左侧导航栏访问各功能模块：
+-    - 📊 **数据探索**：理解你的数据
+-    - 🔧 **特征工程**：可视化特征处理
+-    - 🤖 **模型训练**：交互式训练和评估
+-    - 🎯 **单笔预测**：贷款审批演示
+-    - 🔍 **模型解释**：SHAP 分析
+-    - 💬 **LLM 助手**：智能问答
+-    - ⚙️ **系统配置**：在线修改配置
+-    """)
+-
+-st.divider()
+-
+-# ===== 学习资源 =====
+-with st.expander("📚 学习资源 / 项目文档"):
+-    st.markdown("""
+-    ### 课程章节对应
+-
+-    - **第 1-2 章** XGBoost：详见 `src/models/xgb_model.py` 和模型训练页面
+-    - **第 3 章** 超参优化 + PyTorch MLP：详见 `src/tuning/` 和 `src/models/mlp_model.py`
+-    - **第 4 章** LLM API 应用：详见 `src/llm/` 和 LLM 助手页面
+-
+-    ### 推荐阅读顺序
+-
+-    1. 先阅读 `README.md` 了解整体架构
+-    2. 通读 `configs/` 下所有 YAML 配置（理解项目的"参数面板"）
+-    3. 跟着 `src/pipeline/orchestrator.py` 看完整训练流程
+-    4. 重点研读 `src/llm/` 下的 LLM 集成代码
+-
+-    ### 学习要点
+-
+-    - 📐 **配置驱动**：所有参数外部化，无硬编码
+-    - 🧩 **模块解耦**：每个模块独立可测试可替换
+-    - 🔌 **统一接口**：模型、Agent 都遵循相同接口规范
+-    - 📝 **可解释性**：从 SHAP 到 LLM 报告，让模型决策透明
+-    """)
++import pandas as pd
++import plotly.express as px
++import streamlit as st
+ 
+-# ===== 页脚 =====
+-st.markdown("""
+----
+-<div style='text-align: center; color: gray; font-size: 0.85em;'>
+-    💳 智能信贷风控分析系统 · 学习版 v1.0.0 · 仅用于学习研究<br>
+-    本系统生成的报告和分析结果不构成任何金融建议
+-</div>
+-""", unsafe_allow_html=True)
++from app.components.runtime import ROOT, artifacts, current_data, init_page, public_mode
++
++configs, cfg = init_page("信贷风险工作台", "把数据、模型解释与业务判断连接起来。", "OVERVIEW")
++bundle = artifacts()
++st.markdown('<div class="hero"><small>EXPLAINABLE CREDIT DECISIONS</small>'
++            '<h2>让每一次风险判断，都有据可循。</h2>'
++            '<p>从贷款申请出发，查看违约概率、理解关键风险因素，'
++            '再通过智能报告和情景对比，形成可解释的教学决策流程。</p></div>',
++            unsafe_allow_html=True)
++data = current_data()
++cols = st.columns(4)
++cols[0].metric("训练样本", f'{bundle["meta"]["train_samples"]:,}' if bundle else "尚未训练")
++cols[1].metric("入模特征", len(bundle["meta"]["feature_names"]) if bundle else "—")
++auc = bundle["eval_results"].get("xgboost", {}).get("auc") if bundle else None
++cols[2].metric("XGBoost 测试 AUC", f"{auc:.3f}" if auc is not None else "—")
++cols[3].metric("可用模型", len(bundle["models"]) if bundle else 0)
++st.caption((bundle["meta"]["source"] if bundle else "演示数据") + " · 指标来自独立测试集 · 当前效果不代表真实信贷业务表现")
++st.markdown("")
++left, right = st.columns([1.6, 1])
++with left:
++    with st.container(border=True):
++        st.subheader("从申请到决策")
++        st.caption("按顺序走一遍，也可以直接进入单笔预测体验。")
++        parts = st.columns(4)
++        for col, no, title, desc in zip(parts, ["01", "02", "03", "04"],
++                                        ["了解数据", "训练评估", "解释风险", "辅助决策"],
++                                        ["数据质量与衍生特征", "双树模型与神经网络", "SHAP 全局与局部归因", "报告、规则和情景对比"]):
++            col.markdown(f'<div class="flow-step"><span>STEP {no}</span><b>{title}</b><p>{desc}</p></div>',
++                         unsafe_allow_html=True)
++        st.markdown("")
++        st.page_link("pages/4_🎯_单笔预测.py", label="进入单笔预测 →", icon="🎯")
++        st.page_link("pages/10_风险情景对比.py", label="探索风险情景对比 →", icon="🔄")
++    with st.container(border=True):
++        st.subheader("模型表现")
++        if bundle:
++            scores = pd.DataFrame(bundle["eval_results"]).T.reset_index(names="模型")
++            fig = px.bar(scores, x="模型", y="auc", color="模型",
++                         color_discrete_sequence=["#3468ea", "#57b9a7", "#af95e5", "#f2b968"])
++            fig.update_layout(height=255, showlegend=False, margin=dict(l=10, r=10, t=10, b=10),
++                              yaxis_title="独立测试集 AUC", xaxis_title=None, plot_bgcolor="white", paper_bgcolor="white")
++            st.plotly_chart(fig, use_container_width=True)
++with right:
++    with st.container(border=True):
++        st.subheader("当前工作区")
++        from app.components.runtime import source_label
++        st.write("🟢 数据：" + source_label())
++        st.write("🟢 模型：已就绪" if bundle else "🟠 模型：请先准备演示产物")
++        from app.components.runtime import llm_tools
++        st.write("🟢 DeepSeek：已配置" if llm_tools()[0].configured else "⚪ DeepSeek：示例报告模式")
++        if bundle:
++            st.caption("模型版本：" + bundle["meta"]["run_id"])
++        st.info("无需 API Key 即可体验预测、解释、规则检查与情景对比。")
++    with st.container(border=True):
++        st.subheader("本次扩展")
++        st.write("✓ 教学审批规则检查 Agent")
++        st.write("✓ XGBoost / LightGBM 稳定分流")
++        st.write("✓ 调整申请条件，比较风险变化")
++        st.write("✓ 接入同学的 KNN、调参和漂移检测")
++        st.page_link("pages/9_AB测试.py", label="查看 A/B 测试", icon="🧪")
++        st.page_link("pages/8_模型监控.py", label="查看模型监控", icon="📡")
+diff --git a/configs/llm_config.yaml b/configs/llm_config.yaml
+index f2789b0..b6963a5 100644
+--- a/configs/llm_config.yaml
++++ b/configs/llm_config.yaml
+@@ -34,6 +34,9 @@ deepseek:
+ # ===== Prompt 模板路径 =====
+ prompts:
+   templates_dir: "./configs/prompts"
++  compliance_check:
++    template_file: "compliance_check.j2"
++    system_role: "你是信贷课程的教学规则检查助手，依据提供的规则和事实进行说明。"
+ 
+   # 风险报告生成
+   risk_report:
+diff --git a/configs/prompts/feature_suggestion.j2 b/configs/prompts/feature_suggestion.j2
+index 3de265e..e5ca828 100644
+--- a/configs/prompts/feature_suggestion.j2
++++ b/configs/prompts/feature_suggestion.j2
+@@ -1,55 +1,12 @@
+-你是一位经验丰富的金融风控数据科学家。请基于以下数据集信息，为提升模型预测能力提供专业的特征工程建议。
+-
+-## 数据集背景
+-- **场景**: 个人信贷违约预测
+-- **目标变量**: isDefault (1=违约, 0=正常)
+-- **当前样本数**: {{ sample_size }}
+-- **当前特征数**: {{ feature_count }}
+-
+-## 现有字段说明
+-{% for field in fields %}
+-- **{{ field.name }}** ({{ field.dtype }}): {{ field.description }}
+-  {% if field.stats %}- 统计：{{ field.stats }}{% endif %}
+-{% endfor %}
+-
+-## 数据样本（前 5 行）
+-```
+-{{ data_sample }}
+-```
+-
+-## 当前模型表现
+-- 模型: {{ current_model }}
+-- AUC: {{ current_auc }}
+-- 主要瓶颈: {{ bottleneck if bottleneck else "未指定" }}
+-
+-## 输出要求
+-
+-请提供 **{{ max_suggestions }} 个**有助于提升模型表现的特征工程建议，每个建议包含：
+-
+-1. **特征名称**：建议的新特征名
+-2. **业务含义**：从业务角度解释为什么这个特征有用
+-3. **构造逻辑**：如何从现有字段计算
+-4. **预期效果**：可能对哪类样本的预测有帮助
+-5. **示例代码**：可执行的 Pandas 代码片段
+-
+-请按以下 JSON 格式输出，不要包含 markdown 代码块标记：
+-
+-```json
+-{
+-  "suggestions": [
+-    {
+-      "name": "monthly_burden_ratio",
+-      "business_meaning": "月还款额占月收入的比例，反映还款压力",
+-      "construction": "installment / (annualIncome / 12)",
+-      "expected_impact": "对高负债压力客户的违约预测有帮助",
+-      "code": "df['monthly_burden_ratio'] = df['installment'] / (df['annualIncome'] / 12 + 1)"
+-    }
+-  ],
+-  "general_advice": "整体特征工程方向的建议..."
+-}
+-```
+-
+-注意：
+-- 建议必须基于现有字段，不能凭空假设新数据来源
+-- 优先考虑业务可解释性强的特征
+-- 避免过度工程，保持简洁实用
++你是信贷风控课程的特征工程助手。
++当前模型：{{ current_model }}，验证或测试 AUC：{{ current_auc }}。
++优化方向：{{ bottleneck }}
++字段统计信息（不提供原始客户记录）：
++{{ fields | tojson }}
++给出最多 {{ max_suggestions }} 项易于解释的衍生特征建议。
++只能使用已有字段，只支持 operation=ratio、sum、product、difference、bucket。
++ratio 使用 numerator、denominator；sum/product/difference 使用 left、right；
++bucket 使用 column、bins，bins 必须是递增数值数组。
++只返回 JSON 对象：
++{"suggestions":[{"name":"new_ratio","operation":"ratio","numerator":"loanAmnt","denominator":"annualIncome","business_meaning":"贷款收入比","expected_impact":"反映相对还款压力"}],"general_advice":"..."}
++不要输出或执行 Python 代码。不要使用标签、编号或其他敏感字段构造特征。
+diff --git a/configs/prompts/risk_report.j2 b/configs/prompts/risk_report.j2
+index 43240b9..1ef329d 100644
+--- a/configs/prompts/risk_report.j2
++++ b/configs/prompts/risk_report.j2
+@@ -8,9 +8,11 @@
+ ## 模型预测结果
+ - **违约概率**: {{ "%.2f" | format(probability * 100) }}%
+ - **风险等级**: {{ risk_level }}
+-- **使用模型**: XGBoost + MLP 融合模型
++- **使用模型**: {{ model_name | default('XGBoost') }}
++- 风险等级由模型概率和项目阈值确定，不得自行更改。
+ 
+ ## SHAP 特征贡献度（Top {{ top_n }}）
++归因对象：{{ explanation_model | default(model_name) }}。如与预测模型不同，只能解释该子模型，不能作为整个预测模型的精确归因。
+ 以下为对预测结果影响最大的特征：
+ 
+ {% for item in shap_top_features %}
+diff --git a/src/llm/agents/case_agent.py b/src/llm/agents/case_agent.py
+index 509f99e..7e17876 100644
+--- a/src/llm/agents/case_agent.py
++++ b/src/llm/agents/case_agent.py
+@@ -54,6 +54,7 @@ class CaseAgent:
+         y_true: np.ndarray,
+         y_pred_proba: np.ndarray,
+         X: pd.DataFrame,
++        threshold: float = 0.5,
+     ) -> pd.DataFrame:
+         """
+         筛选出高置信度但预测错误的样本。
+@@ -69,7 +70,6 @@ class CaseAgent:
+         if y_pred_proba.ndim == 2:
+             y_pred_proba = y_pred_proba[:, 1]
+ 
+-        threshold = 0.5
+         y_pred = (y_pred_proba >= threshold).astype(int)
+ 
+         # 错误样本掩码
+@@ -117,6 +117,7 @@ class CaseAgent:
+         probability: float,
+         shap_explanation,
+         stream: bool = False,
++        threshold: float = 0.5,
+     ):
+         """
+         分析单个异常案例。
+@@ -129,7 +130,7 @@ class CaseAgent:
+             stream: 是否流式输出
+         """
+         # 构造上下文
+-        context = self._build_context(features, true_label, probability, shap_explanation)
++        context = self._build_context(features, true_label, probability, shap_explanation, threshold)
+ 
+         # 渲染 Prompt
+         prompt = self.prompts.render("case_analysis", **context)
+@@ -149,12 +150,13 @@ class CaseAgent:
+         true_label: int,
+         probability: float,
+         shap_explanation,
++        threshold: float = 0.5,
+     ) -> Dict[str, Any]:
+         """构造模板上下文"""
+         # 标签文本
+         true_label_text = "违约" if true_label == 1 else "正常"
+ 
+-        predicted_label = 1 if probability >= 0.5 else 0
++        predicted_label = 1 if probability >= threshold else 0
+         predicted_label_text = "违约" if predicted_label == 1 else "正常"
+ 
+         # 置信度等级
+diff --git a/src/llm/agents/feature_agent.py b/src/llm/agents/feature_agent.py
+index d897a9d..8cff682 100644
+--- a/src/llm/agents/feature_agent.py
++++ b/src/llm/agents/feature_agent.py
+@@ -1,213 +1,40 @@
+-"""
+-特征工程建议 Agent
+-==================
+-基于数据集统计信息，让 LLM 提出特征工程建议。
+-
+-要点:
+-    展示 LLM 作为"数据科学助手"的能力——
+-    给定字段和样本，LLM 能基于业务理解给出衍生特征建议，
+-    辅助人类工程师拓展思路。
+-"""
+-from __future__ import annotations
+-
+-import json
+ import re
+-from typing import Any, Dict, List
+ 
+ import pandas as pd
+ 
+-from src.llm.client import DeepSeekClient
+-from src.llm.prompts import PromptManager
+-from src.utils.logger import get_logger
+-
+-logger = get_logger("llm.feature_agent")
+-
+-
+-# 字段说明（教学示例：实际项目中应从数据字典文件加载）
+-FIELD_DESCRIPTIONS = {
+-    "loanAmnt": "贷款金额（元）",
+-    "term": "贷款期限（年）",
+-    "interestRate": "贷款利率（%）",
+-    "installment": "分期付款金额（元）",
+-    "grade": "贷款等级（A-G）",
+-    "subGrade": "贷款等级子级",
+-    "employmentTitle": "就业职称（脱敏）",
+-    "employmentLength": "就业年限",
+-    "homeOwnership": "房屋所有权状况",
+-    "annualIncome": "年收入（元）",
+-    "verificationStatus": "验证状态",
+-    "issueDate": "贷款发放日期",
+-    "purpose": "贷款用途",
+-    "postCode": "邮编（脱敏）",
+-    "regionCode": "地区代码",
+-    "dti": "负债收入比（%）",
+-    "delinquency_2years": "近 2 年逾期次数",
+-    "ficoRangeLow": "FICO 评分下限",
+-    "ficoRangeHigh": "FICO 评分上限",
+-    "openAcc": "未结信用额度数",
+-    "pubRec": "公开记录数",
+-    "pubRecBankruptcies": "破产记录数",
+-    "revolBal": "循环余额（元）",
+-    "revolUtil": "循环额度利用率（%）",
+-    "totalAcc": "总信用额度数",
+-    "initialListStatus": "初始上市状态",
+-    "applicationType": "申请类型",
+-    "earliesCreditLine": "最早信用额度日期",
+-    "title": "贷款名称（脱敏）",
+-    "policyCode": "策略代码",
+-}
++from src.features.project_builder import ProjectFeatureBuilder
++from src.llm.json_utils import parse_json_object
+ 
+ 
+ class FeatureAgent:
+-    """
+-    特征工程建议 Agent。
+-
+-    使用示例:
+-        >>> agent = FeatureAgent(client, prompt_mgr, agent_config)
+-        >>> suggestions = agent.suggest(df=train_df, current_auc=0.74)
+-    """
+-
+-    def __init__(
+-        self,
+-        client: DeepSeekClient,
+-        prompt_manager: PromptManager,
+-        config,
+-    ):
++    def __init__(self, client, prompt_manager, config):
+         self.client = client
+         self.prompts = prompt_manager
+         self.config = config
+ 
+-    def suggest(
+-        self,
+-        df: pd.DataFrame,
+-        current_auc: float = 0.7,
+-        current_model: str = "XGBoost",
+-        bottleneck: str = None,
+-    ) -> Dict[str, Any]:
+-        """
+-        生成特征工程建议。
+-
+-        参数:
+-            df: 训练集 DataFrame
+-            current_auc: 当前模型 AUC
+-            current_model: 当前模型名称
+-            bottleneck: 主要瓶颈描述（可选）
+-
+-        返回:
+-            {"suggestions": [...], "general_advice": "..."}
+-        """
+-        logger.info(f"生成特征建议 - 数据规模: {df.shape}")
+-
+-        # 构造上下文
+-        context = self._build_context(df, current_auc, current_model, bottleneck)
+-
+-        # 渲染 Prompt
+-        prompt = self.prompts.render("feature_suggestion", **context)
+-        system_prompt = self.prompts.get_system_role("feature_suggestion")
+-
+-        # 调用 LLM
+-        response = self.client.chat(prompt, system_prompt=system_prompt)
+-
+-        # 解析 JSON 响应
++    def suggest(self, df, current_auc=None, current_model="XGBoost", bottleneck=None):
++        excluded = set(self.client.config.safety.pii_filter.fields_to_mask) | {"isDefault"}
++        clean = df.drop(columns=list(excluded), errors="ignore")
++        fields = [{"name": c, "dtype": str(clean[c].dtype),
++                   "stats": clean[c].describe().astype(str).to_dict()} for c in clean.columns]
++        prompt = self.prompts.render("feature_suggestion", fields=fields,
++                                     current_auc=current_auc, current_model=current_model,
++                                     max_suggestions=self.config.max_suggestions,
++                                     bottleneck=bottleneck or "")
++        response = self.client.chat(prompt, system_prompt=self.prompts.get_system_role("feature_suggestion"))
+         return self._parse_response(response)
+ 
+-    def apply_suggestion(
+-        self,
+-        df: pd.DataFrame,
+-        suggestion: Dict,
+-    ) -> pd.DataFrame:
+-        """
+-        应用单条特征建议。
+-
+-        ⚠️ 安全提示：执行 LLM 生成的代码有风险，
+-        实际项目中应人工审核后再执行。
+-        """
+-        code = suggestion.get("code", "")
+-        if not code:
+-            return df
+-
+-        df = df.copy()
+-        try:
+-            # 受限的命名空间
+-            safe_globals = {"df": df, "pd": pd, "__builtins__": {}}
+-            exec(code, safe_globals)
+-            logger.info(f"已应用特征建议: {suggestion.get('name')}")
+-            return safe_globals["df"]
+-        except Exception as e:
+-            logger.error(f"应用特征建议失败: {e}")
+-            return df
+-
+-    # -------- 内部辅助 --------
+-
+-    def _build_context(
+-        self,
+-        df: pd.DataFrame,
+-        current_auc: float,
+-        current_model: str,
+-        bottleneck: str,
+-    ) -> Dict[str, Any]:
+-        """构造 Prompt 上下文"""
+-        sample_size = min(self.config.sample_size, len(df))
+-
+-        # 字段信息
+-        fields = []
+-        for col in df.columns:
+-            field_info = {
+-                "name": col,
+-                "dtype": str(df[col].dtype),
+-                "description": FIELD_DESCRIPTIONS.get(col, "（未知字段）"),
+-            }
+-            # 数值列增加统计信息
+-            if pd.api.types.is_numeric_dtype(df[col]):
+-                stats = df[col].describe()
+-                field_info["stats"] = (
+-                    f"均值={stats['mean']:.2f}, "
+-                    f"中位数={stats['50%']:.2f}, "
+-                    f"标准差={stats['std']:.2f}"
+-                )
+-            fields.append(field_info)
+-
+-        # 样本数据（仅前 5 行用于上下文）
+-        data_sample = df.head(5).to_string(max_cols=10)
+-
+-        return {
+-            "sample_size": sample_size,
+-            "feature_count": df.shape[1],
+-            "fields": fields,
+-            "data_sample": data_sample,
+-            "current_model": current_model,
+-            "current_auc": current_auc,
+-            "bottleneck": bottleneck,
+-            "max_suggestions": self.config.max_suggestions,
+-        }
+-
+-    def _parse_response(self, response: str) -> Dict[str, Any]:
+-        """解析 LLM 返回的 JSON"""
+-        # 尝试直接解析
+-        try:
+-            return json.loads(response)
+-        except json.JSONDecodeError:
+-            pass
+-
+-        # 提取 JSON 代码块
+-        json_match = re.search(r'```json\s*([\s\S]*?)\s*```', response)
+-        if json_match:
+-            try:
+-                return json.loads(json_match.group(1))
+-            except json.JSONDecodeError as e:
+-                logger.warning(f"JSON 解析失败: {e}")
+-
+-        # 提取首个完整 JSON 对象
+-        json_match = re.search(r'\{[\s\S]*\}', response)
+-        if json_match:
+-            try:
+-                return json.loads(json_match.group(0))
+-            except json.JSONDecodeError:
+-                pass
+-
+-        logger.warning("无法解析 LLM 响应为 JSON，返回原始文本")
+-        return {
+-            "suggestions": [],
+-            "general_advice": response,
+-            "raw_response": response,
+-        }
++    def _parse_response(self, response):
++        result = parse_json_object(response)
++        if not isinstance(result.get("suggestions"), list):
++            raise ValueError("特征建议缺少 suggestions 列表")
++        result["suggestions"] = result["suggestions"][:self.config.max_suggestions]
++        return result
++
++    def apply_suggestion(self, df, suggestion):
++        name = suggestion.get("name", "")
++        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,63}", name) or name in df.columns:
++            raise ValueError("特征名不合法或与现有列重名")
++        if suggestion.get("operation") not in ("ratio", "sum", "product", "difference", "bucket"):
++            raise ValueError("只支持比值、求和、乘积、相减和分箱，请修改建议后重试")
++        return ProjectFeatureBuilder([suggestion]).build(df)
+diff --git a/src/llm/agents/report_agent.py b/src/llm/agents/report_agent.py
+index c730a99..ad085ee 100644
+--- a/src/llm/agents/report_agent.py
++++ b/src/llm/agents/report_agent.py
+@@ -52,6 +52,10 @@ class ReportAgent:
+         probability: float,
+         shap_explanation,
+         stream: bool = False,
++        model_name: str = "XGBoost",
++        low_risk: float = 0.3,
++        high_risk: float = 0.7,
++        explanation_model: str = None,
+     ):
+         """
+         生成风险报告。
+@@ -67,6 +71,10 @@ class ReportAgent:
+         """
+         # 构造输入上下文
+         context = self._build_context(features, probability, shap_explanation)
++        from src.pipeline.inference import risk_level
++        context["model_name"] = model_name
++        context["explanation_model"] = explanation_model or model_name
++        context["risk_level"] = risk_level(probability, low_risk, high_risk)
+ 
+         # 渲染 Prompt
+         prompt = self.prompts.render("risk_report", **context)
+@@ -94,7 +102,7 @@ class ReportAgent:
+             risk_level = "高风险"
+ 
+         # Top N 特征
+-        top_features = shap_explanation.get_top_features(self.top_n)
++        top_features = shap_explanation.get_top_features(self.top_n) if shap_explanation else []
+ 
+         # 简化特征展示（仅展示有业务含义的关键字段）
+         display_features = self._select_display_features(features)
+diff --git a/src/llm/client.py b/src/llm/client.py
+index a3964d3..91fdc90 100644
+--- a/src/llm/client.py
++++ b/src/llm/client.py
+@@ -1,256 +1,150 @@
+-"""
+-DeepSeek API 客户端
+-====================
+-封装 DeepSeek 大模型 API 调用，支持流式输出、重试、限流等。
+-
+-要点:
+-    1. 使用 OpenAI SDK（DeepSeek 兼容 OpenAI 接口）
+-    2. 重试机制（tenacity）
+-    3. 流式输出（Streamlit 实时显示）
+-    4. 审计日志（合规要求）
+-    5. 异常隔离（LLM 失败不影响主流程）
+-"""
+-from __future__ import annotations
+-
+ import json
+ import os
++import re
++import threading
+ import time
+ from datetime import datetime
+ from pathlib import Path
+-from typing import Any, Dict, Generator, List, Optional
+ 
+-from openai import OpenAI
+-from tenacity import (
+-    retry,
+-    stop_after_attempt,
+-    wait_exponential,
+-    retry_if_exception_type,
+-)
++from openai import (APIConnectionError, APITimeoutError, AuthenticationError,
++                    InternalServerError, OpenAI, RateLimitError)
+ 
+ from src.utils.logger import get_logger
+ 
+-logger = get_logger("llm.client")
++logger = get_logger("llm")
++_TRANSIENT = (APIConnectionError, APITimeoutError, InternalServerError, RateLimitError)
+ 
+ 
+ class DeepSeekClient:
+-    """
+-    DeepSeek API 客户端。
+-
+-    使用示例:
+-        >>> client = DeepSeekClient(llm_config)
+-        >>> # 普通调用
+-        >>> response = client.chat("解释一下违约概率是什么")
+-        >>> # 流式调用
+-        >>> for chunk in client.stream_chat("解释一下违约概率"):
+-        ...     print(chunk, end="")
+-    """
+-
+     def __init__(self, config):
+         self.config = config
+         self.deepseek_cfg = config.deepseek
+-
+-        # 从环境变量读取 API Key
+-        api_key_env = self.deepseek_cfg.api_key_env
+-        api_key = os.environ.get(api_key_env)
+-        if not api_key or api_key == "sk-your-api-key-here":
+-            logger.warning(
+-                f"未找到有效的 {api_key_env}。\n"
+-                f"请在 .env 中配置真实的 DeepSeek API Key。\n"
+-                f"申请地址: https://platform.deepseek.com"
+-            )
+-
+-        # 初始化 OpenAI 兼容客户端
+-        self.client = OpenAI(
+-            api_key=api_key or "dummy-key",
+-            base_url=self.deepseek_cfg.base_url,
+-            timeout=self.deepseek_cfg.default_params.timeout,
+-        )
+-
+         self.model = self.deepseek_cfg.model
+-        self.default_params = dict(self.deepseek_cfg.default_params)
+-        self.default_params.pop("timeout", None)  # timeout 在 client 上设置
+-
+-        # 限流计数器
+-        self._request_times: List[float] = []
+-
+-        # 审计日志路径
+-        self.audit_log_path = None
+-        if hasattr(config, "safety") and config.safety.audit_log.enabled:
+-            self.audit_log_path = Path(config.safety.audit_log.log_file)
+-            self.audit_log_path.parent.mkdir(parents=True, exist_ok=True)
+-
+-    @retry(
+-        stop=stop_after_attempt(3),
+-        wait=wait_exponential(multiplier=1, min=2, max=30),
+-        retry=retry_if_exception_type(Exception),
+-        reraise=True,
+-    )
+-    def chat(
+-        self,
+-        prompt: str,
+-        system_prompt: Optional[str] = None,
+-        history: Optional[List[Dict]] = None,
+-        **kwargs,
+-    ) -> str:
+-        """
+-        非流式对话。
+-
+-        参数:
+-            prompt: 用户消息
+-            system_prompt: 系统消息（可选）
+-            history: 历史对话 [{"role": "user/assistant", "content": "..."}]
+-            **kwargs: 覆盖默认参数
+-        """
+-        self._check_rate_limit()
+-
+-        messages = self._build_messages(prompt, system_prompt, history)
+-        params = {**self.default_params, **kwargs}
+-
+-        # 安全过滤
+-        prompt = self._sanitize_input(prompt)
+-
+-        try:
+-            t0 = time.time()
+-            response = self.client.chat.completions.create(
+-                model=self.model,
+-                messages=messages,
+-                stream=False,
+-                **params,
+-            )
+-            duration = time.time() - t0
+-
+-            content = response.choices[0].message.content
+-            usage = response.usage.model_dump() if response.usage else {}
+-
+-            self._log_audit(prompt, content, duration, usage)
+-            logger.info(f"LLM 调用完成 - 耗时 {duration:.2f}s, tokens={usage}")
+-            return content
+-
+-        except Exception as e:
+-            logger.error(f"LLM 调用失败: {e}")
+-            raise
+-
+-    def stream_chat(
+-        self,
+-        prompt: str,
+-        system_prompt: Optional[str] = None,
+-        history: Optional[List[Dict]] = None,
+-        **kwargs,
+-    ) -> Generator[str, None, None]:
+-        """
+-        流式对话（用于实时显示）。
+-
+-        使用示例:
+-            >>> for chunk in client.stream_chat("..."):
+-            ...     print(chunk, end="", flush=True)
+-        """
+-        self._check_rate_limit()
+-
+-        messages = self._build_messages(prompt, system_prompt, history)
+-        params = {**self.default_params, **kwargs}
+-
+-        prompt = self._sanitize_input(prompt)
+-        full_response = ""
+-        t0 = time.time()
+-
+-        try:
+-            stream = self.client.chat.completions.create(
+-                model=self.model,
+-                messages=messages,
+-                stream=True,
+-                **params,
+-            )
+-            for chunk in stream:
+-                delta = chunk.choices[0].delta
+-                if delta and delta.content:
+-                    full_response += delta.content
+-                    yield delta.content
+-
+-            duration = time.time() - t0
+-            self._log_audit(prompt, full_response, duration, {"stream": True})
+-            logger.info(f"LLM 流式调用完成 - 耗时 {duration:.2f}s")
+-
+-        except Exception as e:
+-            logger.error(f"LLM 流式调用失败: {e}")
+-            yield f"\n\n[错误]: {str(e)}"
+-
+-    # -------- 内部辅助方法 --------
+-
+-    def _build_messages(
+-        self,
+-        prompt: str,
+-        system_prompt: Optional[str] = None,
+-        history: Optional[List[Dict]] = None,
+-    ) -> List[Dict]:
+-        """构建符合 OpenAI 格式的消息列表"""
++        self.client = None
++        self._request_times = []
++        self._lock = threading.Lock()
++        self.audit_log_path = Path(__file__).resolve().parents[2] / "logs/llm_audit.log"
++
++    @property
++    def configured(self):
++        key = os.getenv(self.deepseek_cfg.api_key_env, "")
++        return bool(key and not key.startswith("sk-your")) and os.getenv("APP_ENV") != "public_demo" and os.getenv("CREDIT_RISK_PUBLIC_DEMO") != "1"
++
++    def _require_client(self):
++        if not self.configured:
++            raise ValueError("请在本地 .env 中配置 DeepSeek API Key；公开演示模式不调用 API")
++        if self.client is None:
++            self.client = OpenAI(api_key=os.environ[self.deepseek_cfg.api_key_env],
++                                 base_url=self.deepseek_cfg.base_url,
++                                 timeout=self.deepseek_cfg.default_params.timeout, max_retries=0)
++
++    def _sanitize_input(self, text):
++        text = str(text)
++        key = os.getenv(self.deepseek_cfg.api_key_env, "")
++        if key:
++            text = text.replace(key, "[已隐藏密钥]")
++        text = re.sub(r"sk-[A-Za-z0-9_-]{8,}", "[已隐藏密钥]", text)
++        text = re.sub(r"(?<!\d)1[3-9]\d{9}(?!\d)", "[已隐藏手机号]", text)
++        return re.sub(r"(?<!\d)\d{17}[\dXx](?!\d)", "[已隐藏证件号]", text)
++
++    def _build_messages(self, prompt, system_prompt=None, history=None):
+         messages = []
+         if system_prompt:
+-            messages.append({"role": "system", "content": system_prompt})
+-        if history:
+-            messages.extend(history)
+-        messages.append({"role": "user", "content": prompt})
++            messages.append({"role": "system", "content": self._sanitize_input(system_prompt)})
++        turns = self.config.agents.chat_agent.max_history_turns
++        for message in (history or [])[-turns*2:]:
++            if message.get("role") in ("user", "assistant"):
++                messages.append({"role": message["role"], "content": self._sanitize_input(message["content"])})
++        messages.append({"role": "user", "content": self._sanitize_input(prompt)})
+         return messages
+ 
+-    def _check_rate_limit(self) -> None:
+-        """简单的限流检查（每分钟请求数）"""
+-        if not self.deepseek_cfg.rate_limit.enabled:
++    def _check_rate_limit(self):
++        cfg = self.deepseek_cfg.rate_limit
++        if not cfg.enabled:
+             return
+-
+-        now = time.time()
+-        # 仅保留 60 秒内的请求记录
+-        self._request_times = [t for t in self._request_times if now - t < 60]
+-
+-        max_rpm = self.deepseek_cfg.rate_limit.requests_per_minute
+-        if len(self._request_times) >= max_rpm:
+-            wait_time = 60 - (now - self._request_times[0])
+-            logger.warning(f"达到限流阈值 ({max_rpm}/min)，等待 {wait_time:.1f}s")
+-            time.sleep(max(wait_time, 1))
+-
+-        self._request_times.append(now)
+-
+-    def _sanitize_input(self, text: str) -> str:
+-        """敏感信息过滤"""
+-        if not hasattr(self.config, "safety") or not self.config.safety.content_filter.enabled:
+-            return text
+-
+-        import re
+-        for pattern in self.config.safety.content_filter.block_patterns:
+-            text = re.sub(pattern, "[REDACTED]", text, flags=re.IGNORECASE)
+-        return text
+-
+-    def _log_audit(
+-        self,
+-        prompt: str,
+-        response: str,
+-        duration: float,
+-        usage: Dict,
+-    ) -> None:
+-        """审计日志（合规需要）"""
+-        if self.audit_log_path is None:
++        with self._lock:
++            now = time.monotonic()
++            self._request_times = [stamp for stamp in self._request_times if now-stamp < 60]
++            if len(self._request_times) >= cfg.requests_per_minute:
++                raise ValueError("请求次数较多，请稍后再试")
++            self._request_times.append(now)
++
++    def _params(self, kwargs):
++        params = dict(self.deepseek_cfg.default_params)
++        params.pop("timeout", None)
++        params.update(kwargs)
++        return params
++
++    def _log_audit(self, duration, usage, status):
++        if not self.config.safety.audit_log.enabled:
+             return
+-
+-        # 控制日志大小
+-        log_response = self.config.safety.audit_log.log_response if hasattr(self.config, "safety") else False
+-
+-        record = {
+-            "timestamp": datetime.now().isoformat(),
+-            "model": self.model,
+-            "duration_sec": round(duration, 2),
+-            "usage": usage,
+-            "prompt_preview": prompt[:200],
+-            "response_preview": response[:200] if log_response else None,
+-        }
++        record = {"timestamp": datetime.now().isoformat(), "model": self.model,
++                  "duration_sec": round(duration, 3), "usage": usage, "status": status}
+         try:
+-            with open(self.audit_log_path, "a", encoding="utf-8") as f:
+-                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+-        except Exception as e:
+-            logger.warning(f"审计日志写入失败: {e}")
+-
+-    def health_check(self) -> bool:
+-        """健康检查"""
++            self.audit_log_path.parent.mkdir(exist_ok=True)
++            with self.audit_log_path.open("a", encoding="utf-8") as handle:
++                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
++        except OSError:
++            logger.warning("审计日志暂时无法写入")
++
++    def chat(self, prompt, system_prompt=None, history=None, **kwargs):
++        system_prompt = kwargs.pop("system", system_prompt)
++        self._require_client()
++        messages = self._build_messages(prompt, system_prompt, history)
++        cfg = self.deepseek_cfg.retry
++        for attempt in range(cfg.max_attempts):
++            self._check_rate_limit()
++            start = time.monotonic()
++            try:
++                response = self.client.chat.completions.create(
++                    model=self.model, messages=messages, stream=False, **self._params(kwargs))
++                usage = response.usage.model_dump() if response.usage else {}
++                self._log_audit(time.monotonic()-start, usage, "ok")
++                return response.choices[0].message.content or ""
++            except AuthenticationError:
++                raise ValueError("API 密钥未通过验证，请检查本地配置") from None
++            except _TRANSIENT:
++                self._log_audit(time.monotonic()-start, {}, "connection_error")
++                if attempt+1 == cfg.max_attempts:
++                    raise RuntimeError("DeepSeek 暂时无法连接，请稍后重试") from None
++                time.sleep(min(cfg.initial_wait * cfg.backoff_factor**attempt, cfg.max_wait))
++            except Exception:
++                raise RuntimeError("DeepSeek 请求失败，请检查模型名称、余额与服务状态") from None
++
++    def stream_chat(self, prompt, system_prompt=None, history=None, **kwargs):
++        system_prompt = kwargs.pop("system", system_prompt)
++        self._require_client()
++        messages = self._build_messages(prompt, system_prompt, history)
++        cfg = self.deepseek_cfg.retry
++        for attempt in range(cfg.max_attempts):
++            emitted = False
++            self._check_rate_limit()
++            start = time.monotonic()
++            try:
++                response = self.client.chat.completions.create(
++                    model=self.model, messages=messages, stream=True, **self._params(kwargs))
++                try:
++                    for chunk in response:
++                        if chunk.choices and chunk.choices[0].delta.content:
++                            emitted = True
++                            yield chunk.choices[0].delta.content
++                finally:
++                    response.close()
++                self._log_audit(time.monotonic()-start, {"stream": True}, "ok")
++                return
++            except AuthenticationError:
++                raise ValueError("API 密钥未通过验证，请检查本地配置") from None
++            except _TRANSIENT:
++                self._log_audit(time.monotonic()-start, {}, "stream_interrupted")
++                if emitted or attempt+1 == cfg.max_attempts:
++                    raise RuntimeError("报告生成中断，已收到的内容保留，请重试") from None
++                time.sleep(min(cfg.initial_wait * cfg.backoff_factor**attempt, cfg.max_wait))
++            except Exception:
++                raise RuntimeError("报告生成失败，请检查服务状态后重试") from None
++
++    def health_check(self):
+         try:
+-            self.chat("hello", max_tokens=10)
++            self.chat("请回复 OK", max_tokens=10)
+             return True
+-        except Exception as e:
+-            logger.error(f"健康检查失败: {e}")
++        except (ValueError, RuntimeError):
+             return False
+diff --git a/src/llm/prompts.py b/src/llm/prompts.py
+index 096b4f8..b700a5c 100644
+--- a/src/llm/prompts.py
++++ b/src/llm/prompts.py
+@@ -32,6 +32,8 @@ class PromptManager:
+     def __init__(self, config):
+         self.config = config
+         self.templates_dir = Path(config.prompts.templates_dir)
++        if not self.templates_dir.is_absolute():
++            self.templates_dir = Path(__file__).resolve().parents[2] / self.templates_dir
+         self.prompts_cfg = config.prompts
+ 
+         if not self.templates_dir.exists():
+@@ -42,6 +44,7 @@ class PromptManager:
+             trim_blocks=True,
+             lstrip_blocks=True,
+         )
++        self.env.policies["json.dumps_kwargs"] = {"ensure_ascii": False, "sort_keys": False}
+ 
+         # 缓存模板
+         self._template_cache: Dict[str, Template] = {}
+@@ -83,3 +86,4 @@ class PromptManager:
+     def reload(self) -> None:
+         """重新加载所有模板（开发用）"""
+         self._template_cache.clear()
++        self.env.cache.clear()
+diff --git a/src/pipeline/orchestrator.py b/src/pipeline/orchestrator.py
+index fd1be7a..bd81385 100644
+--- a/src/pipeline/orchestrator.py
++++ b/src/pipeline/orchestrator.py
+@@ -1,353 +1,276 @@
+-"""
+-训练流程编排器
+-==============
+-将数据加载、预处理、特征工程、模型训练、评估、解释串联起来。
+-
+-要点:
+-    将完整流程封装为可重复执行的 Pipeline，
+-    避免 notebook 式的散乱代码，便于：
+-    - 一键复现完整实验
+-    - 自动化训练（CI/CD）
+-    - 参数对比（不同配置同样的流程）
+-"""
+-from __future__ import annotations
+-
++import copy
+ import json
++import os
++import random
+ import time
+ from datetime import datetime
+ from pathlib import Path
+-from typing import Any, Dict, Optional
+ 
+ import joblib
+ import numpy as np
+ import pandas as pd
+ 
+ from src.data.loader import DataLoader, DataSplitter
+-from src.data.preprocessor import Preprocessor
+-from src.features.builder import FeatureBuilder
++from src.features.project_builder import ProjectFeatureBuilder
+ from src.features.selector import FeatureSelector
+ from src.models.xgb_model import XGBModel
++from src.models.lgb_model import LGBModel
+ from src.models.mlp_model import MLPModel
+ from src.models.ensemble import EnsembleModel
+-from src.tuning.optimizer import OptunaOptimizer
+-from src.utils.metrics import Evaluator
++from src.pipeline.adapters import CompatibleOptimizer, ProjectPreprocessor
++from src.utils.metrics import Evaluator, positive_probability
+ from src.utils.logger import get_logger
+ 
++ROOT = Path(__file__).resolve().parents[2]
+ logger = get_logger("pipeline")
+ 
+ 
+-class TrainingPipeline:
+-    """
+-    训练流程编排器。
+-
+-    使用示例:
+-        >>> from src.utils.config_loader import ConfigLoader
+-        >>> configs = ConfigLoader("./configs")
+-        >>> pipeline = TrainingPipeline(configs)
+-        >>> result = pipeline.run(use_sample=True)
+-    """
+-
+-    def __init__(self, configs):
+-        self.configs = configs
+-        self.data_cfg = configs.get("data")
+-        self.feature_cfg = configs.get("feature")
+-        self.model_cfg = configs.get("model")
+-        self.pipeline_cfg = configs.get("pipeline")
+-
+-        # 各步骤产出
+-        self.df: Optional[pd.DataFrame] = None
+-        self.preprocessor: Optional[Preprocessor] = None
+-        self.feature_builder: Optional[FeatureBuilder] = None
+-        self.feature_selector: Optional[FeatureSelector] = None
++def project_path(path):
++    path = Path(path)
++    return path if path.is_absolute() else ROOT / path
+ 
+-        self.X_train = None
+-        self.X_val = None
+-        self.X_test = None
+-        self.y_train = None
+-        self.y_val = None
+-        self.y_test = None
+ 
+-        self.xgb_model: Optional[XGBModel] = None
+-        self.mlp_model: Optional[MLPModel] = None
+-        self.ensemble: Optional[EnsembleModel] = None
++def validate_training_data(df):
++    required = ["loanAmnt", "term", "interestRate", "installment", "annualIncome",
++                "dti", "revolUtil", "ficoRangeLow", "ficoRangeHigh", "isDefault"]
++    missing = sorted(set(required) - set(df.columns))
++    if missing:
++        raise ValueError("数据缺少字段：" + "、".join(missing))
++    if len(df) < 50 or not df["isDefault"].isin([0, 1]).all() or df["isDefault"].nunique() != 2:
++        raise ValueError("训练数据至少 50 行，标签 isDefault 必须为 0/1 且同时包含两类")
++    if df["isDefault"].value_counts().min() < 10:
++        raise ValueError("每个标签类别至少需要 10 条样本")
++    return df
+ 
+-        self.eval_results: Dict[str, Any] = {}
+-        self.run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+-
+-    def run(
+-        self,
+-        use_sample: bool = False,
+-        skip_mlp: bool = False,
+-        skip_tuning: bool = True,
+-        progress_callback=None,
+-    ) -> Dict[str, Any]:
+-        """
+-        执行完整训练流程。
+-
+-        参数:
+-            use_sample: 使用示例数据
+-            skip_mlp: 跳过 MLP 训练（快速调试）
+-            skip_tuning: 跳过超参优化（默认跳过，节省时间）
+-            progress_callback: 进度回调函数 (step_name, progress_pct)
+-
+-        返回:
+-            训练结果字典
+-        """
+-        t_start = time.time()
+-        logger.info(f"=" * 60)
+-        logger.info(f"开始训练流程 - run_id: {self.run_id}")
+-        logger.info(f"=" * 60)
+ 
++class TrainingPipeline:
++    def __init__(self, configs):
++        self.configs = configs
++        self.data_cfg = copy.deepcopy(configs.get("data"))
++        self.feature_cfg = copy.deepcopy(configs.get("feature"))
++        self.model_cfg = copy.deepcopy(configs.get("model"))
++        self.project_cfg = copy.deepcopy(configs.get("project"))
++        for key, value in list(self.data_cfg.paths.items()):
++            if key.endswith("_dir"):
++                self.data_cfg.paths[key] = str(project_path(value))
++        self.model_cfg.persistence.save_dir = str(project_path(self.model_cfg.persistence.save_dir))
++        self.models = {}
++        self.eval_results = {}
++        self.state = {}
++        self.run_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
++        self.xgb_model = self.mlp_model = self.ensemble = None
++        self.feature_selector = None
++        self.tuning_history = []
++        self.tuning_metric = self.model_cfg.xgboost.tuning.metric
++
++    def run(self, use_sample=False, skip_mlp=False, skip_tuning=True, progress_callback=None,
++            model_names=None, data=None, quick=False):
++        start = time.time()
++        np.random.seed(42)
++        random.seed(42)
++        import torch
++        torch.manual_seed(42)
++        torch.set_num_threads(2)
++        names = list(model_names) if model_names is not None else [
++            n for n in ["xgboost", "lightgbm", "mlp"] if self.model_cfg[n].enabled]
++        if skip_mlp:
++            names = [n for n in names if n != "mlp"]
++        if not names or set(names) - {"xgboost", "lightgbm", "mlp"}:
++            raise ValueError("请选择 XGBoost、LightGBM 或 MLP")
++        if quick:
++            self.model_cfg.xgboost.params.n_estimators = self.project_cfg.demo.trees
++            self.model_cfg.lightgbm.params.n_estimators = self.project_cfg.demo.trees
++            self.model_cfg.xgboost.tuning.n_trials = self.project_cfg.demo.trials
++            self.model_cfg.mlp.training.epochs = self.project_cfg.demo.epochs
++            self.model_cfg.mlp.architecture.hidden_layers = [64, 32]
++        for name in ["xgboost", "lightgbm"]:
++            self.model_cfg[name].params.n_jobs = 2
++        self.data_source = "合成演示数据" if use_sample else "用户提供的数据"
+         steps = [
+-            ("加载数据", self._step_load_data, {"use_sample": use_sample}),
+-            ("数据预处理", self._step_preprocess, {}),
+-            ("特征工程", self._step_feature_engineering, {}),
+-            ("特征筛选", self._step_feature_selection, {}),
+-            ("数据划分", self._step_split_data, {}),
+-            ("训练 XGBoost", self._step_train_xgb, {"with_tuning": not skip_tuning}),
++            ("加载与校验数据", lambda: self._step_load_data(use_sample, data)),
++            ("划分训练、验证、测试集", self._step_split_data),
++            ("原始单位特征构造", self._step_feature_engineering),
++            ("训练集拟合预处理", self._step_preprocess),
++            ("训练集拟合特征选择", self._step_feature_selection),
+         ]
+-
+-        if not skip_mlp:
+-            steps.append(("训练 MLP", self._step_train_mlp, {}))
+-            steps.append(("模型融合", self._step_ensemble, {}))
+-
+-        steps.append(("评估", self._step_evaluate, {}))
+-        steps.append(("保存产物", self._step_save_artifacts, {}))
+-
+-        total_steps = len(steps)
+-        for i, (step_name, step_func, step_kwargs) in enumerate(steps):
+-            logger.info(f"\n[{i+1}/{total_steps}] {step_name}...")
++        if "xgboost" in names:
++            steps.append(("训练 XGBoost", lambda: self._step_train_xgb(not skip_tuning)))
++        if "lightgbm" in names:
++            steps.append(("训练 LightGBM", self._step_train_lgb))
++        if "mlp" in names:
++            steps.append(("训练 MLP", self._step_train_mlp))
++        steps += [("模型融合", self._step_ensemble), ("独立测试集评估", self._step_evaluate),
++                  ("保存训练产物", self._step_save_artifacts)]
++        for i, (label, operation) in enumerate(steps):
+             if progress_callback:
+-                progress_callback(step_name, int((i / total_steps) * 100))
+-            try:
+-                step_func(**step_kwargs)
+-            except Exception as e:
+-                logger.error(f"步骤 [{step_name}] 失败: {e}", exc_info=True)
+-                raise
+-
++                progress_callback(label, int(i / len(steps) * 100))
++            logger.info(label)
++            operation()
++            self.state[label] = "完成"
+         if progress_callback:
+             progress_callback("完成", 100)
+-
+-        duration = time.time() - t_start
+-        logger.info(f"\n训练流程完成 - 总耗时 {duration:.2f}s")
+-
+-        return {
+-            "run_id": self.run_id,
+-            "duration": duration,
+-            "eval_results": self.eval_results,
+-            "feature_count": self.X_train.shape[1] if self.X_train is not None else 0,
+-            "train_samples": len(self.X_train) if self.X_train is not None else 0,
+-        }
+-
+-    # =====================================================================
+-    # 各步骤实现
+-    # =====================================================================
+-
+-    def _step_load_data(self, use_sample: bool = False) -> None:
+-        loader = DataLoader(self.data_cfg)
+-        self.df = loader.load_train(use_sample=use_sample)
+-        summary = loader.get_data_summary(self.df)
+-        logger.info(f"数据加载: {summary}")
+-
+-    def _step_preprocess(self) -> None:
+-        # 注意：先分离标签，再 fit
+-        target = self.data_cfg.target_column
+-        self.y_full = self.df[target].copy()
+-
+-        # 临时整体 fit （也可以先 split 后 fit，避免数据泄漏；
+-        # 但 LabelEncoder 需要看全量类别，这里简化处理）
+-        self.preprocessor = Preprocessor(self.data_cfg, self.feature_cfg)
+-        # 排除 ID 列和标签列
+-        df_features = self.df.drop(
+-            columns=[self.data_cfg.id_column, target], errors="ignore"
+-        )
+-        df_processed = self.preprocessor.fit_transform(df_features)
+-        df_processed[target] = self.y_full.values
+-
+-        self.df = df_processed
+-        logger.info(f"预处理后 shape: {self.df.shape}")
+-
+-    def _step_feature_engineering(self) -> None:
+-        self.feature_builder = FeatureBuilder(self.feature_cfg)
+-        target = self.data_cfg.target_column
+-        y_tmp = self.df[target]
+-
+-        df_features = self.df.drop(columns=[target])
+-        df_with_new = self.feature_builder.build(df_features)
+-        df_with_new[target] = y_tmp.values
+-
+-        self.df = df_with_new
+-        logger.info(f"特征工程后 shape: {self.df.shape}")
+-
+-    def _step_feature_selection(self) -> None:
+-        if not self.feature_cfg.feature_selection.enabled:
+-            logger.info("跳过特征筛选")
+-            return
+-
+-        target = self.data_cfg.target_column
+-        y_tmp = self.df[target]
+-        X = self.df.drop(columns=[target])
+-
+-        self.feature_selector = FeatureSelector(self.feature_cfg)
+-        X_selected = self.feature_selector.fit_transform(X, y_tmp)
+-        X_selected[target] = y_tmp.values
+-
+-        self.df = X_selected
+-        logger.info(f"特征筛选后 shape: {self.df.shape}")
+-
+-    def _step_split_data(self) -> None:
+-        splitter = DataSplitter(self.data_cfg)
+-        result = splitter.split(self.df, with_validation=True)
+-        (
+-            self.X_train, self.X_val, self.X_test,
+-            self.y_train, self.y_val, self.y_test,
+-        ) = result
+-
+-    def _step_train_xgb(self, with_tuning: bool = False) -> None:
+-        if not self.model_cfg.xgboost.enabled:
+-            logger.info("跳过 XGBoost 训练")
+-            return
+-
+-        # 超参优化（可选）
+-        if with_tuning and self.model_cfg.xgboost.tuning.enabled:
+-            logger.info("开始 XGBoost 超参优化...")
+-            optimizer = OptunaOptimizer(self.model_cfg.xgboost.tuning)
++        return {"run_id": self.run_id, "duration": time.time()-start,
++                "eval_results": self.eval_results, "feature_count": self.X_train.shape[1],
++                "train_samples": len(self.X_train)}
++
++    def _step_load_data(self, use_sample=False, data=None):
++        self.df = validate_training_data(data.copy() if data is not None else
++                                         DataLoader(self.data_cfg).load_train(use_sample=use_sample))
++        expected = (self.data_cfg.columns.numerical + self.data_cfg.columns.categorical +
++                    self.data_cfg.columns.datetime + self.data_cfg.columns.anonymous)
++        columns = [c for c in expected if c in self.df]
++        self.df = self.df[columns + [self.data_cfg.target_column]].copy()
++        for col in self.data_cfg.columns.numerical + self.data_cfg.columns.anonymous:
++            if col in self.df:
++                self.df[col] = pd.to_numeric(self.df[col], errors="coerce")
++        self.df = self.df.replace([np.inf, -np.inf], np.nan)
++
++    def _step_split_data(self):
++        split = DataSplitter(self.data_cfg).split(self.df)
++        self.raw_train, self.raw_val, self.raw_test, self.y_train, self.y_val, self.y_test = split
++        self.raw_columns = self.raw_train.columns.tolist()
++        self.input_defaults = {}
++        for col in self.raw_columns:
++            values = self.raw_train[col]
++            if pd.api.types.is_numeric_dtype(values):
++                value = values.median() if values.notna().any() else 0.0
++            else:
++                modes = values.mode()
++                value = modes.iloc[0] if len(modes) else "unknown"
++            self.input_defaults[col] = value.item() if isinstance(value, np.generic) else value
++
++    def _step_feature_engineering(self):
++        self.feature_builder = ProjectFeatureBuilder(self.project_cfg.features)
++        self.X_train = self.feature_builder.build(self.raw_train)
++        self.X_val = self.feature_builder.build(self.raw_val)
++        self.X_test = self.feature_builder.build(self.raw_test)
++        self.data_cfg.columns.numerical += self.feature_builder.get_created_features()
++
++    def _step_preprocess(self):
++        self.preprocessor = ProjectPreprocessor(self.data_cfg, self.feature_cfg)
++        self.X_train = self.preprocessor.fit_transform(self.X_train)
++        self.X_val = self.preprocessor.transform(self.X_val)
++        self.X_test = self.preprocessor.transform(self.X_test)
++        for frame in [self.X_train, self.X_val, self.X_test]:
++            if frame.isna().any().any() or not np.isfinite(frame.to_numpy(dtype=float)).all():
++                raise ValueError("预处理后仍存在缺失值或非有限值，请检查输入数据")
++
++    def _step_feature_selection(self):
++        if self.feature_cfg.feature_selection.enabled:
++            self.feature_selector = FeatureSelector(self.feature_cfg)
++            self.X_train = self.feature_selector.fit_transform(self.X_train, self.y_train)
++            self.X_val = self.feature_selector.transform(self.X_val)
++            self.X_test = self.feature_selector.transform(self.X_test)
++
++    def _step_train_xgb(self, with_tuning=False):
++        if with_tuning:
+             from xgboost import XGBClassifier
+-
+-            base_params = dict(self.model_cfg.xgboost.params)
+-            best_params = optimizer.optimize(
+-                model_class=XGBClassifier,
+-                X_train=self.X_train, y_train=self.y_train,
+-                X_val=self.X_val, y_val=self.y_val,
+-                base_params=base_params,
+-            )
+-            # 将最佳参数写回配置（运行时）
+-            for k, v in best_params.items():
+-                self.model_cfg.xgboost.params[k] = v
+-
++            optimizer = CompatibleOptimizer(self.model_cfg.xgboost.tuning)
++            best = optimizer.optimize(XGBClassifier, self.X_train, self.y_train, self.X_val,
++                                      self.y_val, base_params=dict(self.model_cfg.xgboost.params))
++            self.model_cfg.xgboost.params.update(best)
++            self.tuning_history = optimizer.get_history_df().to_dict("records")
+         self.xgb_model = XGBModel(self.model_cfg.xgboost)
+         self.xgb_model.fit(self.X_train, self.y_train, self.X_val, self.y_val)
++        self.models["xgboost"] = self.xgb_model
++        self.state["xgb_model"] = self.xgb_model
+ 
+-    def _step_train_mlp(self) -> None:
+-        if not self.model_cfg.mlp.enabled:
+-            logger.info("跳过 MLP 训练")
+-            return
++    def _step_train_lgb(self):
++        model = LGBModel(self.model_cfg.lightgbm)
++        model.fit(self.X_train, self.y_train, self.X_val, self.y_val)
++        self.models["lightgbm"] = model
+ 
++    def _step_train_mlp(self):
+         self.mlp_model = MLPModel(self.model_cfg.mlp)
+         self.mlp_model.fit(self.X_train, self.y_train, self.X_val, self.y_val)
++        self.models["mlp"] = self.mlp_model
+ 
+-    def _step_ensemble(self) -> None:
+-        if not self.model_cfg.ensemble.enabled:
++    def _step_ensemble(self):
++        if not self.model_cfg.ensemble.enabled or not {"xgboost", "mlp"}.issubset(self.models):
+             return
+-        if self.xgb_model is None or self.mlp_model is None:
+-            logger.warning("基模型不全，跳过融合")
+-            return
+-
+         self.ensemble = EnsembleModel(self.model_cfg.ensemble)
+-        self.ensemble.add_model("xgboost", self.xgb_model)
+-        self.ensemble.add_model("mlp", self.mlp_model)
+-        self.ensemble.fit(self.X_train, self.y_train)
++        for name in ["xgboost", "mlp"]:
++            self.ensemble.add_model(name, self.models[name])
++        self.ensemble.fit(self.X_val, self.y_val)
++        self.models["ensemble"] = self.ensemble
++        self.state["ensemble_model"] = self.ensemble
+ 
+-    def _step_evaluate(self) -> None:
++    def _step_evaluate(self):
+         evaluator = Evaluator()
+-
+-        # 评估各个模型
+-        if self.xgb_model is not None:
+-            y_pred = self.xgb_model.predict_proba(self.X_test)
+-            self.eval_results["xgboost"] = evaluator.evaluate(self.y_test, y_pred).to_dict()
+-            logger.info(f"XGBoost: {self.eval_results['xgboost']}")
+-
+-        if self.mlp_model is not None:
+-            y_pred = self.mlp_model.predict_proba(self.X_test)
+-            self.eval_results["mlp"] = evaluator.evaluate(self.y_test, y_pred).to_dict()
+-            logger.info(f"MLP: {self.eval_results['mlp']}")
+-
+-        if self.ensemble is not None:
+-            y_pred = self.ensemble.predict_proba(self.X_test)
+-            self.eval_results["ensemble"] = evaluator.evaluate(self.y_test, y_pred).to_dict()
+-            logger.info(f"Ensemble: {self.eval_results['ensemble']}")
+-
+-    def _step_save_artifacts(self) -> None:
+-        manager = ArtifactManager(self.model_cfg.persistence.save_dir, self.run_id)
+-        manager.save_pipeline(self)
++        self.test_predictions = {}
++        self.thresholds = {}
++        cfg = self.model_cfg.evaluation.threshold_optimization
++        for name, model in self.models.items():
++            threshold = cfg.fixed_value if cfg.method == "fixed" or not cfg.enabled else \
++                evaluator.find_best_threshold(self.y_val, model.predict_proba(self.X_val), cfg.method)
++            p = positive_probability(model.predict_proba(self.X_test))
++            self.thresholds[name] = threshold
++            self.test_predictions[name] = p
++            self.eval_results[name] = evaluator.evaluate(self.y_test, p, threshold).to_dict()
++        primary = "ensemble" if "ensemble" in self.models else next(iter(self.models))
++        self.state["eval_results"] = self.eval_results
++        self.state["evaluate_result"] = evaluator.evaluate(
++            self.y_test, self.test_predictions[primary], self.thresholds[primary])
++
++    def _step_save_artifacts(self):
++        ArtifactManager(self.model_cfg.persistence.save_dir, self.run_id).save_pipeline(self)
+ 
+ 
+ class ArtifactManager:
+-    """
+-    模型产物管理器。
+-    管理模型、预处理器、特征筛选器、评估结果的保存与加载。
+-    """
+-
+-    def __init__(self, base_dir: str, run_id: Optional[str] = None):
+-        self.base_dir = Path(base_dir)
+-        self.run_id = run_id or "latest"
+-        self.run_dir = self.base_dir / self.run_id
+-        self.run_dir.mkdir(parents=True, exist_ok=True)
+-
+-        # 同时维护 latest 软链接（windows 兼容性问题，改为复制）
+-        self.latest_dir = self.base_dir / "latest"
+-        self.latest_dir.mkdir(parents=True, exist_ok=True)
+-
+-    def save_pipeline(self, pipeline: TrainingPipeline) -> None:
+-        """保存完整 Pipeline 产物"""
+-        # 1. 模型
+-        if pipeline.xgb_model is not None:
+-            pipeline.xgb_model.save(str(self.run_dir / "xgb_model.json"))
+-            pipeline.xgb_model.save(str(self.latest_dir / "xgb_model.json"))
+-
+-        if pipeline.mlp_model is not None:
+-            pipeline.mlp_model.save(str(self.run_dir / "mlp_model.pth"))
+-            pipeline.mlp_model.save(str(self.latest_dir / "mlp_model.pth"))
+-
+-        if pipeline.ensemble is not None:
+-            pipeline.ensemble.save(str(self.run_dir / "ensemble.json"))
+-            pipeline.ensemble.save(str(self.latest_dir / "ensemble.json"))
+-
+-        # 2. 预处理器、特征筛选器（用 joblib）
+-        if pipeline.preprocessor is not None:
+-            joblib.dump(pipeline.preprocessor, self.run_dir / "preprocessor.pkl")
+-            joblib.dump(pipeline.preprocessor, self.latest_dir / "preprocessor.pkl")
+-
+-        if pipeline.feature_selector is not None:
+-            joblib.dump(pipeline.feature_selector, self.run_dir / "feature_selector.pkl")
+-            joblib.dump(pipeline.feature_selector, self.latest_dir / "feature_selector.pkl")
+-
+-        # 3. 评估结果
+-        eval_path = self.run_dir / "eval_results.json"
+-        with open(eval_path, "w", encoding="utf-8") as f:
+-            json.dump(pipeline.eval_results, f, ensure_ascii=False, indent=2)
+-
+-        # 4. 元信息
+-        meta = {
+-            "run_id": pipeline.run_id,
+-            "timestamp": datetime.now().isoformat(),
+-            "feature_names": pipeline.X_train.columns.tolist() if pipeline.X_train is not None else [],
+-            "train_samples": len(pipeline.X_train) if pipeline.X_train is not None else 0,
+-            "val_samples": len(pipeline.X_val) if pipeline.X_val is not None else 0,
+-            "test_samples": len(pipeline.X_test) if pipeline.X_test is not None else 0,
+-        }
+-        with open(self.run_dir / "meta.json", "w", encoding="utf-8") as f:
+-            json.dump(meta, f, ensure_ascii=False, indent=2)
+-        with open(self.latest_dir / "meta.json", "w", encoding="utf-8") as f:
+-            json.dump(meta, f, ensure_ascii=False, indent=2)
+-
+-        logger.info(f"产物已保存至 {self.run_dir}")
++    def __init__(self, base_dir, run_id=None):
++        self.base_dir = project_path(base_dir)
++        self.run_id = run_id or datetime.now().strftime("%Y%m%d_%H%M%S_%f")
++
++    def save_pipeline(self, pipeline):
++        meta = {"schema_version": 2, "run_id": pipeline.run_id,
++                "timestamp": datetime.now().isoformat(), "source": pipeline.data_source,
++                "feature_names": pipeline.X_train.columns.tolist(),
++                "raw_columns": pipeline.raw_columns, "train_samples": len(pipeline.X_train),
++                "val_samples": len(pipeline.X_val), "test_samples": len(pipeline.X_test),
++                "model_names": list(pipeline.models), "seed": 42,
++                "fit_train_indices": pipeline.raw_train.index.tolist()}
++        bundle = {"meta": meta, "models": pipeline.models, "preprocessor": pipeline.preprocessor,
++                  "feature_builder": pipeline.feature_builder, "feature_selector": pipeline.feature_selector,
++                  "input_defaults": pipeline.input_defaults, "eval_results": pipeline.eval_results,
++                  "thresholds": pipeline.thresholds, "project_config": pipeline.project_cfg.to_dict(),
++                  "background": pipeline.X_train.head(100), "raw_test": pipeline.raw_test.head(200),
++                  "raw_baseline": pipeline.raw_train.head(200), "y_test": pipeline.y_test.head(200),
++                  "test_predictions": {n: p[:200] for n, p in pipeline.test_predictions.items()},
++                  "tuning_history": pipeline.tuning_history, "tuning_metric": pipeline.tuning_metric}
++        for folder in [self.base_dir / self.run_id, self.base_dir / "latest"]:
++            folder.mkdir(parents=True, exist_ok=True)
++            pending = folder / f"bundle.{pipeline.run_id}.pending"
++            joblib.dump(bundle, pending, compress=3)
++            os.replace(pending, folder / "bundle.joblib")
++            (folder / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
++            (folder / "eval_results.json").write_text(json.dumps(pipeline.eval_results, indent=2), encoding="utf-8")
++        run_folder = self.base_dir / self.run_id
++        if pipeline.xgb_model:
++            pipeline.xgb_model.save(str(run_folder / "xgb_model.json"))
++        if "lightgbm" in pipeline.models:
++            pipeline.models["lightgbm"].save(str(run_folder / "lightgbm_model.txt"))
++        if pipeline.mlp_model:
++            pipeline.mlp_model.save(str(run_folder / "mlp_model.pth"))
++        if pipeline.ensemble:
++            pipeline.ensemble.save(str(run_folder / "ensemble.json"))
++        import shutil
++        latest = self.base_dir / "latest"
++        for path in run_folder.iterdir():
++            if path.suffix in (".json", ".txt", ".pth", ".pkl"):
++                shutil.copy2(path, latest / path.name)
++        for name in ["preprocessor", "feature_builder", "feature_selector"]:
++            value = getattr(pipeline, name)
++            if value is not None:
++                joblib.dump(value, latest / (name + ".pkl"))
++        logger.info(f"训练产物已保存：{run_folder}")
+ 
+     @classmethod
+-    def load_latest(cls, base_dir: str) -> Dict:
+-        """加载最新的训练产物"""
+-        latest_dir = Path(base_dir) / "latest"
+-        if not latest_dir.exists():
+-            raise FileNotFoundError(f"未找到训练产物目录: {latest_dir}")
+-
+-        result = {"dir": str(latest_dir)}
+-
+-        meta_path = latest_dir / "meta.json"
+-        if meta_path.exists():
+-            result["meta"] = json.loads(meta_path.read_text(encoding="utf-8"))
+-
+-        eval_path = latest_dir / "eval_results.json"
+-        if eval_path.exists():
+-            result["eval_results"] = json.loads(eval_path.read_text(encoding="utf-8"))
+-
++    def load_latest(cls, base_dir):
++        folder = project_path(base_dir) / "latest"
++        path = folder / "bundle.joblib"
++        if not path.exists():
++            raise FileNotFoundError("没有完整训练产物，请重新训练或使用内置演示模型")
++        result = joblib.load(path)
++        result["dir"] = str(folder)
++        result["ensemble_model"] = result["models"].get("ensemble")
+         return result
+diff --git a/src/utils/config_loader.py b/src/utils/config_loader.py
+index 3f9b943..1efc10f 100644
+--- a/src/utils/config_loader.py
++++ b/src/utils/config_loader.py
+@@ -52,7 +52,7 @@ class ConfigLoader:
+     def _initialize(self, config_dir: str) -> None:
+         """初始化：加载 .env 和所有 YAML 配置"""
+         # 加载环境变量
+-        load_dotenv()
++        load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=True)
+ 
+         # 解析为绝对路径，便于错误提示
+         self.config_dir = Path(config_dir).resolve()
+@@ -98,10 +98,14 @@ class ConfigLoader:
+             content = f.read()
+ 
+         # 环境变量插值: ${VAR_NAME} 或 ${VAR_NAME:-default_value}
+-        content = self._interpolate_env_vars(content)
+-
+         data = yaml.safe_load(content)
+-        return AttrDict(data) if data else AttrDict({})
++        def interpolate(value):
++            if isinstance(value, dict):
++                return {key: interpolate(item) for key, item in value.items()}
++            if isinstance(value, list):
++                return [interpolate(item) for item in value]
++            return self._interpolate_env_vars(value) if isinstance(value, str) else value
++        return AttrDict(interpolate(data or {}))
+ 
+     @staticmethod
+     def _interpolate_env_vars(content: str) -> str:
+@@ -138,6 +142,11 @@ class ConfigLoader:
+     def __repr__(self) -> str:
+         return f"ConfigLoader(dir={self.config_dir}, configs={list(self._configs.keys())})"
+ 
++    def __getattr__(self, name):
++        if name in self._configs:
++            return self._configs[name]
++        raise AttributeError(name)
++
+ 
+ class AttrDict(dict):
+     """
+@@ -172,6 +181,15 @@ class AttrDict(dict):
+     def __setattr__(self, key: str, value: Any) -> None:
+         self[key] = self._wrap(value)
+ 
++    def to_dict(self) -> dict:
++        def unwrap(value):
++            if isinstance(value, dict):
++                return {key: unwrap(item) for key, item in value.items()}
++            if isinstance(value, list):
++                return [unwrap(item) for item in value]
++            return value
++        return unwrap(self)
++
+ 
+ # ===== 便捷函数 =====
+ def load_configs(config_dir: str = "./configs") -> ConfigLoader:
+diff --git a/src/utils/logger.py b/src/utils/logger.py
+index bf16731..907811f 100644
+--- a/src/utils/logger.py
++++ b/src/utils/logger.py
+@@ -1,63 +1,36 @@
+-"""
+-日志工具
+-========
+-基于 loguru 的统一日志接口，支持文件 + 控制台双输出，按日期切分。
+-"""
+-from __future__ import annotations
+-
++import os
++import re
+ import sys
+ from pathlib import Path
+-from typing import Optional
+-
+-from loguru import logger as _loguru_logger
+-
+-
+-def get_logger(
+-    name: str = "credit_risk",
+-    log_dir: str = "./logs",
+-    level: str = "INFO",
+-    rotation: str = "10 MB",
+-    retention: str = "14 days",
+-):
+-    """
+-    获取配置好的 logger 实例。
+-
+-    参数:
+-        name: logger 名称（用于区分模块）
+-        log_dir: 日志保存目录
+-        level: 日志级别 DEBUG/INFO/WARNING/ERROR
+-        rotation: 日志切分规则
+-        retention: 日志保留时间
+-    """
+-    log_path = Path(log_dir)
+-    log_path.mkdir(parents=True, exist_ok=True)
+-
+-    # 移除默认 handler，避免重复输出
+-    _loguru_logger.remove()
+-
+-    # 控制台输出（彩色）
+-    _loguru_logger.add(
+-        sys.stderr,
+-        format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | "
+-               "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+-               "<level>{message}</level>",
+-        level=level,
+-        colorize=True,
+-    )
+-
+-    # 文件输出（按日期切分）
+-    _loguru_logger.add(
+-        log_path / f"{name}_{{time:YYYY-MM-DD}}.log",
+-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+-        level=level,
+-        rotation=rotation,
+-        retention=retention,
+-        encoding="utf-8",
+-        enqueue=True,  # 多进程安全
+-    )
+-
+-    return _loguru_logger.bind(name=name)
+-
+-
+-# 默认 logger 实例（导入即可用）
++
++from loguru import logger
++
++_configured = False
++
++
++def _hide_secrets(record):
++    message = record["message"]
++    secret = os.getenv("DEEPSEEK_API_KEY", "")
++    if secret:
++        message = message.replace(secret, "[已隐藏]")
++    record["message"] = re.sub(r"sk-[A-Za-z0-9_-]{8,}", "[已隐藏]", message)
++
++
++def get_logger(name="credit_risk", log_dir="./logs", level="INFO", rotation="10 MB", retention="14 days"):
++    global _configured
++    if not _configured:
++        folder = Path(log_dir)
++        if not folder.is_absolute():
++            folder = Path(__file__).resolve().parents[2] / folder
++        folder.mkdir(parents=True, exist_ok=True)
++        logger.remove()
++        logger.configure(patcher=_hide_secrets)
++        fmt = "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[module]} | {message}"
++        logger.add(sys.stderr, format=fmt, level=os.getenv("LOG_LEVEL", level))
++        logger.add(folder / "system_{time:YYYY-MM-DD}.log", format=fmt, level=level,
++                   rotation=rotation, retention=retention, encoding="utf-8", diagnose=False)
++        _configured = True
++    return logger.bind(module=name)
++
++
+ default_logger = get_logger()
+diff --git a/src/utils/metrics.py b/src/utils/metrics.py
+index e276ca9..eaeae0e 100644
+--- a/src/utils/metrics.py
++++ b/src/utils/metrics.py
+@@ -1,35 +1,26 @@
+-"""
+-评估指标模块
+-============
+-风控场景常用的评估指标：AUC、KS、混淆矩阵、PR/ROC 曲线等。
++from dataclasses import asdict, dataclass
+ 
+-要点:
+-    KS（Kolmogorov-Smirnov）是金融风控特有的指标，
+-    衡量好坏样本累积分布的最大差距，越大越好。
+-"""
+-from __future__ import annotations
++import numpy as np
++import pandas as pd
++from sklearn.metrics import (accuracy_score, confusion_matrix, f1_score, log_loss,
++                             precision_recall_curve, precision_score, recall_score,
++                             roc_auc_score, roc_curve)
+ 
+-from dataclasses import dataclass, asdict
+-from typing import Dict, Tuple
+ 
+-import numpy as np
+-from sklearn.metrics import (
+-    accuracy_score,
+-    f1_score,
+-    log_loss,
+-    precision_recall_curve,
+-    precision_score,
+-    recall_score,
+-    roc_auc_score,
+-    roc_curve,
+-    confusion_matrix,
+-)
++def positive_probability(values):
++    values = np.asarray(values, dtype=float)
++    if values.ndim == 2 and values.shape[1] == 2:
++        values = values[:, 1]
++    if values.ndim != 1 or not np.isfinite(values).all():
++        raise ValueError("预测概率必须是一维有限数值，或二分类的两列概率")
++    if ((values < 0) | (values > 1)).any():
++        raise ValueError("预测概率必须在 0 到 1 之间")
++    return values
+ 
+ 
+ @dataclass
+ class EvalResult:
+-    """评估结果数据类"""
+-    auc: float = 0.0
++    auc: float | None = None
+     ks: float = 0.0
+     accuracy: float = 0.0
+     precision: float = 0.0
+@@ -38,152 +29,78 @@ class EvalResult:
+     log_loss: float = 0.0
+     threshold: float = 0.5
+ 
+-    def to_dict(self) -> Dict:
++    def to_dict(self):
+         return asdict(self)
+ 
+-    def __repr__(self) -> str:
+-        return (
+-            f"EvalResult(AUC={self.auc:.4f}, KS={self.ks:.4f}, "
+-            f"F1={self.f1:.4f} @ threshold={self.threshold:.2f})"
+-        )
++    @property
++    def summary(self):
++        auc = f"{self.auc:.4f}" if self.auc is not None else "不适用（单一类别）"
++        return f"AUC: {auc} | KS: {self.ks:.4f} | F1: {self.f1:.4f}"
+ 
+ 
+ class Evaluator:
+-    """
+-    模型评估器，统一计算各类指标。
+-
+-    使用示例:
+-        >>> evaluator = Evaluator()
+-        >>> result = evaluator.evaluate(y_true, y_pred_proba)
+-        >>> print(result)
+-    """
+-
+-    def __init__(self, threshold: float = 0.5):
++    def __init__(self, threshold=0.5):
+         self.threshold = threshold
+ 
+-    def evaluate(
+-        self,
+-        y_true: np.ndarray,
+-        y_pred_proba: np.ndarray,
+-        threshold: float = None,
+-    ) -> EvalResult:
+-        """
+-        计算所有指标。
+-
+-        参数:
+-            y_true: 真实标签 (n,)
+-            y_pred_proba: 预测概率 (n,) 或 (n, 2)
+-            threshold: 分类阈值
+-        """
+-        # 兼容二维概率输入
+-        if y_pred_proba.ndim == 2:
+-            y_pred_proba = y_pred_proba[:, 1]
+-
+-        threshold = threshold if threshold is not None else self.threshold
+-        y_pred_label = (y_pred_proba >= threshold).astype(int)
+-
++    def evaluate(self, y_true, y_pred_proba=None, threshold=None, **kwargs):
++        p = positive_probability(y_pred_proba if y_pred_proba is not None else kwargs["y_proba"])
++        y = np.asarray(y_true)
++        if not len(y) or len(y) != len(p) or not np.isin(y, [0, 1]).all():
++            raise ValueError("真实标签必须为 0/1，且数量与预测概率一致")
++        threshold = self.threshold if threshold is None else threshold
++        if not 0 <= threshold <= 1:
++            raise ValueError("分类阈值必须在 0 到 1 之间")
++        pred = (p >= threshold).astype(int)
+         return EvalResult(
+-            auc=roc_auc_score(y_true, y_pred_proba),
+-            ks=self.calculate_ks(y_true, y_pred_proba),
+-            accuracy=accuracy_score(y_true, y_pred_label),
+-            precision=precision_score(y_true, y_pred_label, zero_division=0),
+-            recall=recall_score(y_true, y_pred_label, zero_division=0),
+-            f1=f1_score(y_true, y_pred_label, zero_division=0),
+-            log_loss=log_loss(y_true, np.clip(y_pred_proba, 1e-15, 1 - 1e-15)),
+-            threshold=threshold,
+-        )
++            auc=float(roc_auc_score(y, p)) if len(np.unique(y)) == 2 else None,
++            ks=self.calculate_ks(y, p), accuracy=float(accuracy_score(y, pred)),
++            precision=float(precision_score(y, pred, zero_division=0)),
++            recall=float(recall_score(y, pred, zero_division=0)),
++            f1=float(f1_score(y, pred, zero_division=0)),
++            log_loss=float(log_loss(y, np.clip(p, 1e-10, 1-1e-10), labels=[0, 1])),
++            threshold=float(threshold))
+ 
+     @staticmethod
+-    def calculate_ks(y_true: np.ndarray, y_pred_proba: np.ndarray) -> float:
+-        """
+-        计算 KS 值（金融风控特有指标）。
+-
+-        KS = max(|TPR - FPR|)
+-        反映模型对好坏客户的区分能力，越大越好。
+-        通常 KS > 0.3 算可接受，> 0.5 算优秀。
+-        """
+-        fpr, tpr, _ = roc_curve(y_true, y_pred_proba)
++    def calculate_ks(y_true, y_pred_proba):
++        if len(np.unique(y_true)) < 2:
++            return 0.0
++        fpr, tpr, _ = roc_curve(y_true, positive_probability(y_pred_proba))
+         return float(np.max(np.abs(tpr - fpr)))
+ 
+     @staticmethod
+-    def find_best_threshold(
+-        y_true: np.ndarray,
+-        y_pred_proba: np.ndarray,
+-        method: str = "youden",
+-    ) -> float:
+-        """
+-        寻找最佳分类阈值。
+-
+-        参数:
+-            method: youden（Youden 指数）/ f1（F1 最大）
+-        """
++    def find_best_threshold(y_true, y_pred_proba, method="youden"):
++        p = positive_probability(y_pred_proba)
++        if len(np.unique(y_true)) < 2:
++            return 0.5
+         if method == "youden":
+-            fpr, tpr, thresholds = roc_curve(y_true, y_pred_proba)
+-            youden = tpr - fpr
+-            return float(thresholds[np.argmax(youden)])
+-
+-        elif method == "f1":
+-            precisions, recalls, thresholds = precision_recall_curve(y_true, y_pred_proba)
+-            f1_scores = 2 * precisions * recalls / (precisions + recalls + 1e-10)
+-            # 注意 thresholds 比 precisions 少一个
+-            return float(thresholds[np.argmax(f1_scores[:-1])])
+-
+-        else:
+-            raise ValueError(f"不支持的方法: {method}")
++            fpr, tpr, thresholds = roc_curve(y_true, p)
++            valid = np.isfinite(thresholds) & (thresholds <= 1)
++            return float(thresholds[valid][np.argmax((tpr-fpr)[valid])])
++        if method == "f1":
++            precision, recall, thresholds = precision_recall_curve(y_true, p)
++            scores = 2*precision*recall / (precision+recall+1e-10)
++            return float(thresholds[np.argmax(scores[:-1])])
++        if method == "fixed":
++            return 0.5
++        raise ValueError("阈值方法应为 youden、f1 或 fixed")
+ 
+     @staticmethod
+-    def get_confusion_matrix(
+-        y_true: np.ndarray,
+-        y_pred_proba: np.ndarray,
+-        threshold: float = 0.5,
+-    ) -> np.ndarray:
+-        """获取混淆矩阵"""
+-        y_pred = (y_pred_proba >= threshold).astype(int)
+-        return confusion_matrix(y_true, y_pred)
++    def get_confusion_matrix(y_true, y_pred_proba, threshold=0.5):
++        return confusion_matrix(y_true, positive_probability(y_pred_proba) >= threshold, labels=[0, 1])
+ 
+     @staticmethod
+-    def get_roc_curve(
+-        y_true: np.ndarray,
+-        y_pred_proba: np.ndarray,
+-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+-        """获取 ROC 曲线数据点"""
+-        return roc_curve(y_true, y_pred_proba)
++    def get_roc_curve(y_true, y_pred_proba):
++        return roc_curve(y_true, positive_probability(y_pred_proba))
+ 
+     @staticmethod
+-    def get_pr_curve(
+-        y_true: np.ndarray,
+-        y_pred_proba: np.ndarray,
+-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+-        """获取 PR 曲线数据点"""
+-        return precision_recall_curve(y_true, y_pred_proba)
++    def get_pr_curve(y_true, y_pred_proba):
++        return precision_recall_curve(y_true, positive_probability(y_pred_proba))
+ 
+     @staticmethod
+-    def calculate_lift(
+-        y_true: np.ndarray,
+-        y_pred_proba: np.ndarray,
+-        n_bins: int = 10,
+-    ) -> Dict:
+-        """
+-        计算 Lift（提升度），用于评估营销/风控分群效果。
+-        """
+-        # 按预测概率降序排列
+-        sorted_indices = np.argsort(-y_pred_proba)
+-        y_sorted = y_true[sorted_indices]
+-
+-        baseline = y_true.mean()
+-        bin_size = len(y_true) // n_bins
+-
+-        lifts = []
+-        for i in range(n_bins):
+-            start = i * bin_size
+-            end = (i + 1) * bin_size if i < n_bins - 1 else len(y_true)
+-            bin_rate = y_sorted[start:end].mean()
+-            lift = bin_rate / baseline if baseline > 0 else 0
+-            lifts.append({
+-                "bin": i + 1,
+-                "size": end - start,
+-                "default_rate": float(bin_rate),
+-                "lift": float(lift),
+-            })
+-
+-        return {"baseline": float(baseline), "bins": lifts}
++    def calculate_lift(y_true, y_pred_proba, n_bins=10):
++        frame = pd.DataFrame({"target": y_true, "probability": positive_probability(y_pred_proba)})
++        frame = frame.sort_values("probability", ascending=False).reset_index(drop=True)
++        frame["bin"] = np.minimum(np.arange(len(frame))*n_bins//max(len(frame), 1)+1, n_bins)
++        result = frame.groupby("bin")["target"].agg(["count", "mean"])
++        result["lift"] = result["mean"] / max(float(frame.target.mean()), 1e-10)
++        return result.reset_index()

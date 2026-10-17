@@ -54,6 +54,7 @@ class CaseAgent:
         y_true: np.ndarray,
         y_pred_proba: np.ndarray,
         X: pd.DataFrame,
+        threshold: float = 0.5,
     ) -> pd.DataFrame:
         """
         筛选出高置信度但预测错误的样本。
@@ -69,7 +70,6 @@ class CaseAgent:
         if y_pred_proba.ndim == 2:
             y_pred_proba = y_pred_proba[:, 1]
 
-        threshold = 0.5
         y_pred = (y_pred_proba >= threshold).astype(int)
 
         # 错误样本掩码
@@ -117,6 +117,7 @@ class CaseAgent:
         probability: float,
         shap_explanation,
         stream: bool = False,
+        threshold: float = 0.5,
     ):
         """
         分析单个异常案例。
@@ -129,7 +130,7 @@ class CaseAgent:
             stream: 是否流式输出
         """
         # 构造上下文
-        context = self._build_context(features, true_label, probability, shap_explanation)
+        context = self._build_context(features, true_label, probability, shap_explanation, threshold)
 
         # 渲染 Prompt
         prompt = self.prompts.render("case_analysis", **context)
@@ -149,12 +150,13 @@ class CaseAgent:
         true_label: int,
         probability: float,
         shap_explanation,
+        threshold: float = 0.5,
     ) -> Dict[str, Any]:
         """构造模板上下文"""
         # 标签文本
         true_label_text = "违约" if true_label == 1 else "正常"
 
-        predicted_label = 1 if probability >= 0.5 else 0
+        predicted_label = 1 if probability >= threshold else 0
         predicted_label_text = "违约" if predicted_label == 1 else "正常"
 
         # 置信度等级

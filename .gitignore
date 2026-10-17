@@ -19,6 +19,8 @@ env/
 # Environment & Secrets
 .env
 .env.local
+.env.*
+!.env.example
 *.pem
 *.key
 # Data & Models
@@ -41,3 +43,14 @@ logs/
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb_meta
+
+.local/
+docs/review-baseline.json
+data/predictions/
+data/reports/
+data/metrics/
+data/shap/
+*.pt
+*.zip
+!.env.example
+!demo_assets/*.joblib
