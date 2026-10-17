@@ -181,6 +181,45 @@ class TestXGB:
         assert np.allclose(proba1, proba2, rtol=1e-5)
 
 
+# ===== 测试 LightGBM =====
+class TestLGB:
+    def test_fit_predict(self, configs, sample_df):
+        from src.data.preprocessor import Preprocessor
+        from src.models.lgb_model import LGBModel
+
+        prep = Preprocessor(configs.get("data"), configs.get("feature"))
+        X = sample_df.drop(columns=["isDefault", "id"])
+        y = sample_df["isDefault"]
+        X_processed = prep.fit_transform(X)
+
+        configs.get("model").lightgbm.params.n_estimators = 50
+
+        model = LGBModel(configs.get("model").lightgbm)
+        model.fit(X_processed, y)
+
+        proba = model.predict_proba(X_processed)
+        assert proba.shape == (len(y),)
+        assert (proba >= 0).all() and (proba <= 1).all()
+
+    def test_save_load(self, configs, sample_df, tmp_path):
+        from src.data.preprocessor import Preprocessor
+        from src.models.lgb_model import LGBModel
+
+        prep = Preprocessor(configs.get("data"), configs.get("feature"))
+        X = sample_df.drop(columns=["isDefault", "id"])
+        y = sample_df["isDefault"]
+        X_processed = prep.fit_transform(X)
+
+        configs.get("model").lightgbm.params.n_estimators = 50
+
+        model = LGBModel(configs.get("model").lightgbm)
+        model.fit(X_processed, y)
+
+        save_path = tmp_path / "test_lgb_model.txt"
+        model.save(str(save_path))
+        assert save_path.exists()
+
+
 # ===== 测试 Feature Builder =====
 class TestFeatureBuilder:
     def test_build(self, configs, sample_df):
