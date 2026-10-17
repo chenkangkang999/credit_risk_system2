@@ -47,7 +47,8 @@ xgboost:
     n_trials: 50
     timeout: 1800         # 秒
     direction: "maximize"
-    metric: "auc"
+    metric: "auc"          # 优化目标指标：auc / ks
+    multi_objective: false  # 是否多目标优化（同时最大化metric + 最小化模型复杂度）
 
     # 搜索空间
     search_space:

@@ -21,6 +21,7 @@ from optuna.pruners import MedianPruner
 from sklearn.metrics import roc_auc_score
 
 from src.utils.logger import get_logger
+from src.utils.metrics import Evaluator
 
 logger = get_logger("tuning.optuna")
 
@@ -52,6 +53,7 @@ class OptunaOptimizer:
 
         self.study: Optional[optuna.Study] = None
         self.best_params: Optional[Dict] = None
+        self.multi_objective = getattr(config, "multi_objective", False)
 
     def optimize(
         self,
@@ -86,19 +88,29 @@ class OptunaOptimizer:
                 model_class, X_train, y_train, X_val, y_val, base_params
             )
 
-        # 创建 Study
+        # 创建 Study（单目标 / 多目标）
         sampler = TPESampler(seed=42)
         pruner = MedianPruner(n_startup_trials=5, n_warmup_steps=10)
-        self.study = optuna.create_study(
-            direction=self.direction,
-            sampler=sampler,
-            pruner=pruner,
-            study_name=f"opt_{model_class.__name__}",
-        )
+
+        if self.multi_objective:
+            # 多目标：同时最大化 metric、最小化模型复杂度
+            self.study = optuna.create_study(
+                directions=["maximize", "minimize"],
+                sampler=sampler,
+                pruner=pruner,
+                study_name=f"opt_{model_class.__name__}",
+            )
+        else:
+            self.study = optuna.create_study(
+                direction=self.direction,
+                sampler=sampler,
+                pruner=pruner,
+                study_name=f"opt_{model_class.__name__}",
+            )
 
         logger.info(
             f"开始超参优化 - n_trials={self.n_trials}, timeout={self.timeout}s, "
-            f"direction={self.direction}"
+            f"direction={self.direction}, multi_objective={self.multi_objective}"
         )
 
         # 执行
@@ -153,7 +165,18 @@ class OptunaOptimizer:
 
                 # 验证
                 val_pred = model.predict_proba(X_val)[:, 1]
-                score = roc_auc_score(y_val, val_pred)
+
+                # 根据配置的 metric 计算分数
+                if self.metric == "ks":
+                    score = Evaluator.calculate_ks(y_val, val_pred)
+                else:  # 默认 auc
+                    score = roc_auc_score(y_val, val_pred)
+
+                # 多目标模式：同时返回 (metric分数, 模型复杂度)
+                # 复杂度代理：用 max_depth 作为复杂度指标，越小越好
+                if self.multi_objective:
+                    complexity = params.get("max_depth", params.get("num_leaves", 5))
+                    return (score, float(complexity))
 
                 return score
             except Exception as e:

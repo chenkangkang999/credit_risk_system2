@@ -220,6 +220,65 @@ class TestLGB:
         assert save_path.exists()
 
 
+# ===== 测试超参优化器 =====
+class TestOptimizer:
+    def test_ks_metric(self, configs, sample_df):
+        """测试 metric 切换为 KS 时能正常工作"""
+        from src.data.preprocessor import Preprocessor
+        from src.tuning.optimizer import OptunaOptimizer
+
+        prep = Preprocessor(configs.get("data"), configs.get("feature"))
+        X = sample_df.drop(columns=["isDefault", "id"])
+        y = sample_df["isDefault"]
+        X_processed = prep.fit_transform(X)
+
+        # 只跑2个trial，快速测试
+        configs.get("model").xgboost.tuning.n_trials = 2
+        configs.get("model").xgboost.tuning.metric = "ks"
+
+        optimizer = OptunaOptimizer(configs.get("model").xgboost.tuning)
+        from xgboost import XGBClassifier
+
+        best_params = optimizer.optimize(
+            model_class=XGBClassifier,
+            X_train=X_processed,
+            y_train=y,
+            X_val=X_processed.head(100),
+            y_val=y.head(100),
+            base_params={"objective": "binary:logistic"},
+        )
+
+        # 应该返回了最佳参数
+        assert isinstance(best_params, dict)
+        assert len(best_params) > 0
+
+    def test_auc_metric_default(self, configs, sample_df):
+        """测试默认 AUC 指标仍然正常"""
+        from src.data.preprocessor import Preprocessor
+        from src.tuning.optimizer import OptunaOptimizer
+
+        prep = Preprocessor(configs.get("data"), configs.get("feature"))
+        X = sample_df.drop(columns=["isDefault", "id"])
+        y = sample_df["isDefault"]
+        X_processed = prep.fit_transform(X)
+
+        configs.get("model").xgboost.tuning.n_trials = 2
+
+        optimizer = OptunaOptimizer(configs.get("model").xgboost.tuning)
+        from xgboost import XGBClassifier
+
+        best_params = optimizer.optimize(
+            model_class=XGBClassifier,
+            X_train=X_processed,
+            y_train=y,
+            X_val=X_processed.head(100),
+            y_val=y.head(100),
+            base_params={"objective": "binary:logistic"},
+        )
+
+        assert isinstance(best_params, dict)
+
+
 # ===== 测试 Feature Builder =====
 class TestFeatureBuilder:
     def test_build(self, configs, sample_df):
