@@ -279,6 +279,51 @@ class TestOptimizer:
         assert isinstance(best_params, dict)
 
 
+# ===== 测试漂移检测器 =====
+class TestDriftDetector:
+    def test_no_drift(self, sample_df):
+        """同分布数据不应检测到漂移"""
+        from src.monitoring.drift_detector import DriftDetector
+
+        baseline = sample_df[["loanAmnt", "annualIncome", "dti", "revolUtil"]].head(200)
+        new_data = sample_df[["loanAmnt", "annualIncome", "dti", "revolUtil"]].tail(200)
+
+        detector = DriftDetector(baseline)
+        drifts = detector.detect(new_data, threshold=0.1)
+
+        # 同分布数据，不应该有high级别的漂移
+        high_drifts = [k for k, v in drifts.items() if v["severity"] == "high"]
+        assert len(high_drifts) == 0
+
+    def test_detect_drift(self, sample_df):
+        """人为制造分布偏移，应该能检测到"""
+        from src.monitoring.drift_detector import DriftDetector
+
+        baseline = sample_df[["loanAmnt", "annualIncome"]].copy()
+        # 人为制造偏移：新数据收入整体翻倍
+        new_data = sample_df[["loanAmnt", "annualIncome"]].copy()
+        new_data["annualIncome"] = new_data["annualIncome"] * 5
+
+        detector = DriftDetector(baseline)
+        drifts = detector.detect(new_data, threshold=0.1)
+
+        # annualIncome 应该检测到漂移
+        assert "annualIncome" in drifts
+
+    def test_report(self, sample_df):
+        """测试漂移报告文本生成"""
+        from src.monitoring.drift_detector import DriftDetector
+
+        baseline = sample_df[["loanAmnt", "annualIncome"]].head(100)
+        new_data = sample_df[["loanAmnt", "annualIncome"]].tail(100)
+
+        detector = DriftDetector(baseline)
+        report = detector.get_drift_report(new_data)
+
+        assert isinstance(report, str)
+        assert len(report) > 0
+
+
 # ===== 测试 Feature Builder =====
 class TestFeatureBuilder:
     def test_build(self, configs, sample_df):
