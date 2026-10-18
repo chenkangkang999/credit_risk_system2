@@ -10,7 +10,7 @@ def _home_page():
 
 
 def render_sidebar():
-    from app.components.runtime import ROOT, public_mode
+    from app.components.runtime import ROOT, configured_model_path, public_mode
     with st.sidebar:
         st.markdown('<div class="sidebar-brand"><div class="brand-icon">◈</div>'
                     '<div class="brand-name">智能风控<span>CREDIT RISK LAB</span></div></div>',
@@ -29,8 +29,9 @@ def render_sidebar():
         for page, label, icon in links:
             st.page_link(page, label=label, icon=icon)
         st.divider()
-        options = ["内置演示模型"]
-        if not public_mode() and (ROOT / "data/models/latest/bundle.joblib").exists():
+        configured = configured_model_path()
+        options = ["指定预训练模型"] if configured is not None else ["内置演示模型"]
+        if configured is None and not public_mode() and (ROOT / "data/models/latest/bundle.joblib").exists():
             options.append("本地最新训练")
         if st.session_state.get("artifact_source") not in options:
             st.session_state["artifact_source"] = options[0]

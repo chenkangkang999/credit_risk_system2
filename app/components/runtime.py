@@ -1,5 +1,6 @@
 import copy
 import os
+import pickle
 from pathlib import Path
 
 import joblib
@@ -87,7 +88,15 @@ def source_label():
     return st.session_state.get("data_label", "合成演示数据") if not public_mode() else "合成演示数据"
 
 
+def configured_model_path():
+    value = os.getenv("CREDIT_RISK_MODEL_PATH", "").strip()
+    return (ROOT / value).resolve() if value else None
+
+
 def bundle_path():
+    configured = configured_model_path()
+    if configured is not None:
+        return configured
     if not public_mode() and st.session_state.get("artifact_source") == "本地最新训练":
         return ROOT / "data/models/latest/bundle.joblib"
     return ROOT / "demo_assets/bundle.joblib"
@@ -101,8 +110,23 @@ def _load_bundle(path, stamp):
 def artifacts():
     path = bundle_path()
     if not path.exists():
+        if configured_model_path() is not None:
+            st.error("指定的预训练模型不存在，请检查 CREDIT_RISK_MODEL_PATH 和模型文件。")
+            st.stop()
         return None
-    return _load_bundle(str(path), path.stat().st_mtime_ns)
+    try:
+        bundle = _load_bundle(str(path), path.stat().st_mtime_ns)
+        required = {"models", "preprocessor", "feature_builder", "feature_selector", "input_defaults",
+                    "eval_results", "thresholds", "project_config", "background", "raw_test",
+                    "raw_baseline", "y_test", "test_predictions"}
+        if (not isinstance(bundle, dict) or not required.issubset(bundle)
+                or bundle.get("meta", {}).get("schema_version") != 2):
+            raise ValueError("模型包格式不兼容")
+        return bundle
+    except (OSError, ImportError, ValueError, EOFError, AttributeError,
+            RuntimeError, KeyError, IndexError, pickle.UnpicklingError) as error:
+        st.error(f"预训练模型加载失败（{type(error).__name__}）。请使用项目保存的完整 bundle.joblib，并按固定版本安装依赖。")
+        st.stop()
 
 
 def require_service():

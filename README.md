@@ -8,7 +8,7 @@ license: Apache License 2.0
 
 项目位置：D:\credit_risk_system3
 
-项目由 chenkangkang999 与 MeteorShower7 协作完成。在同学 d329cbf 提交基础上，保留数据适配、合并训练入口、三模型权重配置和本地全量数据来源功能，补充三模型编排、数据来源保护、页面调整和两人分工说明。公网展示尚未发布。
+项目由 chenkangkang999 与 MeteorShower7 协作完成。在同学 d329cbf 提交基础上，保留数据适配、合并训练入口、三模型权重配置和本地全量数据来源功能，补充三模型编排、数据来源保护、页面调整和两人分工说明。创空间已可运行，版本同步见[创空间部署说明](docs/创空间部署说明.md)。
 
 ## 现在怎么查看
 
@@ -66,7 +66,7 @@ license: Apache License 2.0
     .\.venv\Scripts\python.exe -m pip install -r requirements-review.txt
     .\.venv\Scripts\python.exe -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
 
-原 requirements.txt 保留，审阅版本的已验证依赖单独放在 requirements-review.txt。公开部署使用 app/requirements.txt。
+根目录 requirements.txt 独立列出固定版本，与 app/requirements.txt 的依赖保持一致，适配 ModelScope 单独提取根依赖文件的构建方式。ModelScope 使用 Python 3.12、Streamlit 类型和根入口 app.py，具体步骤见[创空间部署说明](docs/创空间部署说明.md)。
 
 测试命令：
 
@@ -80,4 +80,4 @@ license: Apache License 2.0
 
 本轮固定合成数据测试 AUC 约 0.59—0.62，只用于验证流程，不代表真实信贷效果。规则检查使用课程约定；SHAP 树模型原始输出不是概率。MLP 或融合结果旁的树模型 SHAP 会明确标注子模型名称。
 
-以后发布公开站点时，默认不调用真实 API，只使用演示模型和示例报告。免费部署文件和说明已经准备，公开展示的部署入口及模式设置见 docs/免费部署说明.md。
+公开站点默认不调用真实 API，使用预训练模型和示例报告。ModelScope 的入口、模型路径和模式设置见[创空间部署说明](docs/创空间部署说明.md)；Streamlit Community Cloud 的部署步骤见 docs/免费部署说明.md。
