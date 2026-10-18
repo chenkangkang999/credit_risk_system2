@@ -6,11 +6,11 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from app.components.runtime import ROOT, current_data, generated_data, init_page, public_mode, source_label
+from app.components.runtime import ROOT, available_real_data, current_data, generated_data, init_page, public_mode, source_label
 
 _, cfg = init_page("数据探索", "从样本规模、缺失情况与变量分布，了解当前数据。", "DATA")
 if not public_mode():
-    choice = st.radio("数据来源", ["内置合成数据", "上传 CSV", "本地天池 CSV"], horizontal=True)
+    choice = st.radio("数据来源", ["内置合成数据", "上传 CSV", "本地真实数据", "本地天池 CSV"], horizontal=True)
     if choice == "上传 CSV":
         uploaded = st.file_uploader("上传与项目字段一致的 CSV", type=["csv"])
         if uploaded is not None:
@@ -26,6 +26,20 @@ if not public_mode():
                     st.success("当前数据源已更新，训练页面将使用此数据。")
             except (ValueError, pd.errors.ParserError, UnicodeDecodeError) as error:
                 st.error(str(error))
+    elif choice == "本地真实数据":
+        files = available_real_data()
+        if not files:
+            st.info(f"未找到真实数据文件，请将 train_merged.csv 或 train.csv 放入 {ROOT / 'data' / 'raw'}")
+        else:
+            labels = {"train_merged.csv": "天池 + Lending Club 合并数据（约 105 万行）",
+                      "train.csv": "天池数据（约 80 万行）"}
+            selected = st.selectbox("选择数据文件", files,
+                                    format_func=lambda name: f"{name} · {labels.get(name, '')}")
+            if st.button("加载本地真实数据", type="primary"):
+                st.session_state["data_source"] = selected
+                st.session_state["data_label"] = f"本地真实数据：{selected}"
+                st.session_state.pop("active_data", None)
+                st.success(f"已加载 {selected}，全站数据源已切换（首次加载大文件可能需要几秒到几十秒）。")
     elif choice == "本地天池 CSV":
         path = ROOT / "data/raw/train.csv"
         if path.exists():
@@ -37,6 +51,7 @@ if not public_mode():
     elif st.button("恢复合成演示数据"):
         st.session_state.pop("active_data", None)
         st.session_state.pop("data_label", None)
+        st.session_state.pop("data_source", None)
 data = current_data()
 st.caption("当前数据源：" + source_label())
 cols = st.columns(4)

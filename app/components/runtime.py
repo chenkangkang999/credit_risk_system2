@@ -45,9 +45,26 @@ def generated_data(n=5000):
     return generate_sample_data(n, random_seed=42)
 
 
+REAL_DATA_FILES = ("train_merged.csv", "train.csv")
+
+
+def available_real_data():
+    """返回 data/raw 下存在的真实数据文件（合并 105 万数据优先）。"""
+    return [name for name in REAL_DATA_FILES if (ROOT / "data" / "raw" / name).exists()]
+
+
+@st.cache_resource(show_spinner="正在加载本地真实数据…")
+def load_real_data(name):
+    return pd.read_csv(ROOT / "data" / "raw" / name)
+
+
 def current_data():
-    if "active_data" in st.session_state and not public_mode():
-        return st.session_state["active_data"].copy()
+    if not public_mode():
+        source = st.session_state.get("data_source")
+        if source in REAL_DATA_FILES and (ROOT / "data" / "raw" / source).exists():
+            return load_real_data(source)
+        if "active_data" in st.session_state:
+            return st.session_state["active_data"].copy()
     path = ROOT / "demo_assets/sample.json"
     if path.exists():
         return pd.read_json(path, orient="table")
