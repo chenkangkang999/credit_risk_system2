@@ -1,6 +1,12 @@
 from pathlib import Path
 
 import streamlit as st
+from streamlit.runtime.scriptrunner import get_script_run_ctx
+
+
+def _home_page():
+    ctx = get_script_run_ctx()
+    return Path(ctx.main_script_path).name if ctx and ctx.main_script_path else "streamlit_app.py"
 
 
 def render_sidebar():
@@ -9,7 +15,7 @@ def render_sidebar():
         st.markdown('<div class="sidebar-brand"><div class="brand-icon">◈</div>'
                     '<div class="brand-name">智能风控<span>CREDIT RISK LAB</span></div></div>',
                     unsafe_allow_html=True)
-        links = [("streamlit_app.py", "工作台", "🏠"),
+        links = [(_home_page(), "工作台", "🏠"),
                  ("pages/1_📊_数据探索.py", "数据探索", "📊"),
                  ("pages/2_🔧_特征工程.py", "特征工程", "🔧"),
                  ("pages/3_🤖_模型训练.py", "模型训练", "🤖"),

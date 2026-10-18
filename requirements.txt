@@ -1,3 +1,5 @@
+# ModelScope/Streamlit 部署使用 CPU 版 PyTorch（避免安装 2GB CUDA 版本）
+--extra-index-url https://download.pytorch.org/whl/cpu
 # ===== 核心数据科学栈 =====
 numpy>=1.24.0
 pandas>=2.0.0
@@ -7,8 +9,7 @@ scipy>=1.10.0
 xgboost>=2.0.0
 lightgbm>=4.0.0
 # ===== 深度学习 =====
-torch>=2.0.0
-torchvision>=0.15.0
+torch==2.5.1+cpu
 # ===== 超参优化 =====
 optuna>=3.4.0
 optuna-dashboard>=0.13.0

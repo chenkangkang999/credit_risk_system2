@@ -1,3 +1,9 @@
+---
+deployspec:
+  entry_file: app.py
+license: Apache License 2.0
+---
+
 # 智能信贷风控分析系统
 
 项目位置：D:\credit_risk_system3
