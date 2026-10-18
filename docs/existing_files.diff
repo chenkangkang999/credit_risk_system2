@@ -1,1295 +1,607 @@
 diff --git a/README.md b/README.md
-index 71078a4..4c7aa7b 100644
+index 4c7aa7b..e33aae0 100644
 --- a/README.md
 +++ b/README.md
-@@ -2,7 +2,7 @@
- 
+@@ -1,8 +1,8 @@
+-# 智能信贷风控分析系统 · 个人负责部分
++# 智能信贷风控分析系统
+
  项目位置：D:\credit_risk_system3
- 
--这是在项目组现有仓库上完成的个人负责部分。已完成本地验收和 DeepSeek 真实连接验证，用户已同意检查通过后提交到原仓库 main。公网展示尚未发布。
-+这是在项目组现有仓库上完成的个人负责部分。上一版已上传到 main（ca04a6c）；2026-10-18 的特征、7.2 和计费完善已通过用户审阅并获准上传，以同学最新 0a63f13 为基础保留新增数据适配器。公网展示尚未发布。
- 
+
+-这是在项目组现有仓库上完成的个人负责部分。上一版已上传到 main（ca04a6c）；2026-10-18 的特征、7.2 和计费完善已通过用户审阅并获准上传，以同学最新 0a63f13 为基础保留新增数据适配器。公网展示尚未发布。
++项目由 chenkangkang999 与 MeteorShower7 协作完成。在同学 d329cbf 提交基础上，保留数据适配、合并训练入口、三模型权重配置和本地全量数据来源功能，补充三模型编排、数据来源保护、页面调整和两人分工说明。公网展示尚未发布。
+
  ## 现在怎么查看
- 
-@@ -28,6 +28,8 @@
+
+@@ -19,15 +19,23 @@
+
+ 建议先看：首页 → 单笔预测 → 模型解释 → 风险情景对比 → A/B 模型测试 → 模型监控。
+
+-## 本次负责内容
++## 项目分工
++
++- **chenkangkang999**：主要负责数据处理、模型算法、调参、模型解释和漂移检测，以及真实数据的准备和接入。
++- **MeteorShower7**：主要负责衍生特征、特征选择接入、训练和预测流程、DeepSeek 智能功能，以及网页和扩展功能。
++
++详细任务见[分工说明](docs/分工说明.md)。
++
++## 个人负责章节
+
+ 完成第一份开发指导书的 4.1、4.3.4、4.6.4、4.7、4.8、5.1—5.6，以及 7.2、7.5、7.7、7.8。
+
+-原有七个页面均已完善，另有监控、A/B 和情景对比三个页面。同学的模型、数据预处理、调参、特征选择和 SHAP 核心代码保持不变，适配和页面衔接在新增文件中完成。
++原有七个页面均已完善，另有监控、A/B 和情景对比三个页面。基础模型、数据预处理、调参、特征选择和 SHAP 核心实现继续复用同学代码；个人改动主要位于应用、衍生特征和编排层。对同学近期扩展过的运行上下文和数据探索页，仅补充缓存刷新、切换清理和加载失败保护，具体边界见分工说明。
+
  详细记录：
- 
+
  - docs/修改与衔接说明.md：逐文件修改位置、原因、同学代码保留清单。
-+- docs/本次完善说明.md：本轮指标对照、功能入口、计费说明和不变文件检查。
-+- docs/训练验证实验.md：候选特征与参数的验证集比较，选择依据和局限。
++- docs/分工说明.md：两位协作者的职责、基础实现与实际接入的归属、近期共同文件衔接。
+ - docs/本次完善说明.md：本轮指标对照、功能入口、计费说明和不变文件检查。
+ - docs/训练验证实验.md：候选特征与参数的验证集比较，选择依据和局限。
  - docs/章节完成对照表.md：章节与页面、验收路径。
- - docs/答辩讲解.md：易于讲解的处理流程、扩展原理和演示顺序。
- - docs/免费部署说明.md：免费公开展示的部署步骤。
-@@ -46,12 +48,18 @@
- 
- 内置模型使用原项目合成数据生成器产生 5,000 条记录，随机种子为 42，按 3,500 / 500 / 1,000 划分训练、验证、测试集。预处理和特征筛选只拟合训练集；阈值只在验证集选择；测试集不用于调参。
- 
--准备演示：
-+用同一份演示数据更新模型（不会改写数据或标签）：
- 
+@@ -52,11 +60,11 @@
+
      .\.venv\Scripts\python.exe scripts/prepare_demo.py
- 
- 网页可选择 XGBoost、LightGBM、MLP，并使用 AUC 或 KS 进行调参。融合沿用原项目 XGBoost + MLP 的权重配置，LightGBM 单独训练及参与 A/B 对比。
- 
-+稳健方案从个人扩展 project_config.yaml 读取浅树、正则化和小型 MLP 参数；同学的 model_config.yaml 不变。11 项新增候选中，默认只加入经过验证的等级、稳定就业两项，其余可在特征工程页预览。分类阈值只影响分类指标，不会提高 AUC。
+
+-网页可选择 XGBoost、LightGBM、MLP，并使用 AUC 或 KS 进行调参。融合沿用原项目 XGBoost + MLP 的权重配置，LightGBM 单独训练及参与 A/B 对比。
++网页可选择 XGBoost、LightGBM、MLP，并使用 AUC 或 KS 进行调参。三种模型全部训练成功且融合开启时，编排层按同学配置的 XGBoost 0.4、LightGBM 0.4、MLP 0.2 进行融合；缺少任一模型时仅保留已选基础模型。融合类本身保持原样。已有模型产物以其保存时的模型列表与权重为准，更新代码不会自动改写旧模型。
+
+-稳健方案从个人扩展 project_config.yaml 读取浅树、正则化和小型 MLP 参数；同学的 model_config.yaml 不变。11 项新增候选中，默认只加入经过验证的等级、稳定就业两项，其余可在特征工程页预览。分类阈值只影响分类指标，不会提高 AUC。
++稳健方案从个人扩展 project_config.yaml 读取浅树、正则化和小型 MLP 参数；基础 model_config.yaml 由同学维护，本轮个人衔接不修改该配置。11 项新增候选中，默认只加入经过合成数据验证的等级、稳定就业两项，其余可在特征工程页预览。分类阈值只影响分类指标，不会提高 AUC。
+
+-7.2 入口：单笔预测 → 完成风险评估 →「7.2 政策合规检查」。填写 LPR、年龄、额外还款证明、用途及附加规则，可分别查看本地检查和真实 DeepSeek 四字段 JSON 检查。
++指导书 7.2 对应入口：单笔预测 → 完成风险评估 →「政策合规检查」。填写 LPR、年龄、额外还款证明、用途及附加规则，可分别查看本地检查和真实 DeepSeek 四字段 JSON 检查。
+
+ 计费入口：LLM 智能助手页面底部「LLM 用量与费用」。记录启用功能以后的本机调用，展示最近一次、累计 Token、人民币估算和明细。价格配置见 configs/billing_config.yaml，默认按高峰单价估算上限，实际扣费以服务商账单为准，不是账户余额。账本保存在被忽略的 .local/llm_billing.sqlite3，不保存问题、回答或密钥。
+
+@@ -66,7 +74,9 @@
+
+ 原命令使用基础配置，可能比网页快速配置耗时。没有 --skip-tuning 参数，默认跳过调参，--tune 表示启用调参。
+
+-真实天池 train.csv 放入 data/raw，仍使用同学的数据和模型模块。大数据的 KNN 计算可能较慢，可先取小样本联调。真实数据不要复制到 demo_assets。
++真实数据按同学的 data/README.md 放入 data/raw，可在数据探索页选择本地全量文件，或先加载 train.csv 前 20,000 行查看。合并脚本和命令行 --data-file 入口由同学提供，个人补充数据源切换与缓存保护。大数据的 KNN 计算可能较慢，可先取小样本联调。真实数据不要复制到 demo_assets；本轮真实数据训练状态与指标另行核验，不以入口已接入代替训练完成。
 +
-+7.2 入口：单笔预测 → 完成风险评估 →「7.2 政策合规检查」。填写 LPR、年龄、额外还款证明、用途及附加规则，可分别查看本地检查和真实 DeepSeek 四字段 JSON 检查。
-+
-+计费入口：LLM 智能助手页面底部「LLM 用量与费用」。记录启用功能以后的本机调用，展示最近一次、累计 Token、人民币估算和明细。价格配置见 configs/billing_config.yaml，默认按高峰单价估算上限，实际扣费以服务商账单为准，不是账户余额。账本保存在被忽略的 .local/llm_billing.sqlite3，不保存问题、回答或密钥。
-+
- 命令行原入口仍可使用：
- 
-     .\.venv\Scripts\python.exe scripts/train_pipeline.py --use-sample --tune
-@@ -74,12 +82,12 @@
- 
++本轮实测 `train_merged.csv` 为 1,054,190 行 × 47 列，`train.csv` 为 800,000 行 × 47 列，均通过加载、训练必需字段和二分类标签校验，缓存命中正常，校验前后原文件 SHA256 一致。此处仅验证数据接入，没有开展百万行全量训练或产生新模型指标。特征选择功能入口在模型训练页，训练进度中显示“训练集拟合特征选择”。
+
+ ## 验证
+
+@@ -82,7 +92,7 @@
+
      powershell -ExecutionPolicy Bypass -File .\运行测试.ps1
- 
--原 18 项测试保持原样；新增 26 项测试验证数据划分、推理一致性、A/B、JSON、规则检查和 API 脱敏等。本机 LightGBM 原生保存接口不支持部分中文临时路径，所以测试临时目录使用项目内的 .local/pytest，没有改动原测试。
-+原 18 项测试保持原样；扩展测试验证数据划分、推理一致性、A/B、JSON、规则检查、计费和 API 脱敏等。本机 LightGBM 原生保存接口不支持部分中文临时路径，所以测试临时目录使用项目内的 .local/pytest，没有改动原测试。
- 
+
+-原 18 项测试保持原样；扩展测试验证数据划分、推理一致性、A/B、JSON、规则检查、计费和 API 脱敏等。本机 LightGBM 原生保存接口不支持部分中文临时路径，所以测试临时目录使用项目内的 .local/pytest，没有改动原测试。
++基础测试随同学提交同步保留；个人扩展测试验证数据划分、推理一致性、A/B、JSON、规则检查、计费、API 脱敏、三模型融合及数据来源切换。本机 LightGBM 原生保存接口不支持部分中文临时路径，所以测试临时目录使用项目内的 .local/pytest，个人没有修改同学的 tests/test_basic.py。
+
  页面检查使用 Streamlit AppTest，覆盖本地与公开展示模式各 11 页。交互检查使用 scripts/check_interactions.py，会执行一次本地快速训练。
- 
- ## 展示边界
- 
--合成数据 AUC 约 0.53—0.58，只用于验证流程，不代表真实信贷效果。规则检查使用课程自定义阈值；SHAP 树模型原始输出不是概率。MLP 或融合结果旁的树模型 SHAP 会明确标注子模型名称。
-+本轮固定合成数据测试 AUC 约 0.59—0.62，只用于验证流程，不代表真实信贷效果。规则检查使用课程约定；SHAP 树模型原始输出不是概率。MLP 或融合结果旁的树模型 SHAP 会明确标注子模型名称。
- 
- 以后发布公开站点时，默认不调用真实 API，只使用演示模型和示例报告。免费部署文件和说明已经准备，公开展示的部署入口及模式设置见 docs/免费部署说明.md。
-diff --git a/app/components/settings_editor.py b/app/components/settings_editor.py
-index 5743afa..8f79b15 100644
---- a/app/components/settings_editor.py
-+++ b/app/components/settings_editor.py
-@@ -22,7 +22,9 @@ def validate_settings(data):
-         if len(names) != len(set(names)):
-             raise ValueError("衍生特征名称不能重复")
-         if any(rule.get("operation") not in ("ratio", "monthly_income", "payment_ratio", "fico_mean",
--                                             "bucket", "sum", "product", "difference") for rule in data["features"]):
-+                                             "bucket", "sum", "product", "difference", "log1p", "category_flag",
-+                                             "annual_interest_ratio", "credit_history", "debt_surplus",
-+                                             "ratio_plus_one") for rule in data["features"]):
-             raise ValueError("包含不支持的特征操作")
-         for key in ["demo", "compliance"]:
-             if not isinstance(data[key], dict):
+
+diff --git a/app/assets/style.css b/app/assets/style.css
+index fb7eba1..b932851 100644
+--- a/app/assets/style.css
++++ b/app/assets/style.css
+@@ -1,16 +1,26 @@
+ :root{--ink:#172b4d;--muted:#778399;--blue:#3468ea;}
+ html,body,[class*="css"]{font-family:"Microsoft YaHei","Noto Sans SC",sans-serif;}
+ .stApp{background:#f7f9fd;color:var(--ink);}
++[data-testid="stMain"]{background-image:radial-gradient(ellipse at 96% 8%,#e8effb80,transparent 48%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'%3E%3Cg fill='none' stroke='%238da6c4' stroke-opacity='.07' stroke-width='1'%3E%3Cpath d='M30 60h540M30 120h540M30 180h540M30 240h540M90 30v240M210 30v240M330 30v240M450 30v240M570 30v240'/%3E%3C/g%3E%3Cpath d='M30 228C80 228 95 186 150 196S230 140 282 158 355 103 405 112 490 57 570 44V270H30Z' fill='%237c9cc8' fill-opacity='.025'/%3E%3Cpath d='M30 228C80 228 95 186 150 196S230 140 282 158 355 103 405 112 490 57 570 44' fill='none' stroke='%237c9cc8' stroke-opacity='.16' stroke-width='2'/%3E%3Cg fill='%237c9cc8' fill-opacity='.18'%3E%3Ccircle cx='150' cy='196' r='3'/%3E%3Ccircle cx='282' cy='158' r='3'/%3E%3Ccircle cx='405' cy='112' r='3'/%3E%3Ccircle cx='570' cy='44' r='3'/%3E%3C/g%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right top,right 1.5rem top 4.5rem;background-size:100% 460px,500px 250px;}
+ .block-container{padding:3.5rem 2rem 3rem;max-width:1480px;}
+ h1{font-size:2.05rem!important;font-weight:700!important;letter-spacing:-.045em;}
+ h2{font-size:1.35rem!important;}h3{font-size:1.1rem!important;}
+ .page-subtitle{color:#75829b;margin-top:-.4rem;margin-bottom:1.65rem;line-height:1.7;}
+ [data-testid="stSidebar"]{background:white;border-right:1px solid #e7ecf5;}
+ [data-testid="stSidebarNav"]{display:none;}
+-[data-testid="stSidebar"]{min-width:260px!important;max-width:280px!important;}
+-.brand-icon{display:inline-flex;align-items:center;justify-content:center;background:#3468ea;color:white;width:42px;height:42px;border-radius:12px;font-size:29px;margin-right:10px;vertical-align:middle;}
+-.brand-name{display:inline-block;font-size:20px;font-weight:700;vertical-align:middle;color:#173157;}
+-.brand-name span{display:block;font-size:9px;letter-spacing:2px;color:#8a96aa;margin-top:3px;}
++[data-testid="stSidebar"][aria-expanded="true"]{min-width:260px!important;max-width:280px!important;}
++[data-testid="stSidebar"][aria-expanded="false"]{width:0!important;min-width:0!important;max-width:0!important;border:0;}
++[data-testid="stAppViewContainer"]:has([data-testid="stSidebar"][aria-expanded="false"]) .block-container{max-width:none;}
++[data-testid="stSidebarHeader"]{position:absolute;top:28px;right:14px;width:36px;height:32px;padding:0;z-index:3;}
++[data-testid="stSidebarCollapseButton"]{display:block!important;visibility:visible;}
++[data-testid="stSidebarUserContent"]{padding:24px 20px;}
++[data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"]{gap:1rem;}
++[data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(>.sidebar-brand){margin-bottom:0;}
++[data-testid="stSidebarUserContent"] hr{margin:.6rem 0;}
++.sidebar-brand{display:flex;align-items:center;gap:10px;padding-right:32px;}
++.brand-icon{display:flex;align-items:center;justify-content:center;background:#3468ea;color:white;width:36px;height:36px;flex:0 0 36px;border-radius:10px;font-size:25px;}
++.brand-name{font-size:19px;font-weight:700;line-height:1.35;color:#173157;}
++.brand-name span{display:block;font-size:8.5px;font-weight:500;letter-spacing:1.5px;color:#8a96aa;margin-top:3px;}
+ [data-testid="stMetric"]{background:white;border:1px solid #e6ecf5;border-radius:13px;padding:18px 20px;box-shadow:0 3px 10px #17315703;}
+ [data-testid="stMetricLabel"]{color:#7a879c;font-size:13px;}
+ [data-testid="stMetricValue"]{font-size:1.9rem;font-weight:650;color:#234c95;}
+@@ -34,3 +44,6 @@ footer{visibility:hidden;}
+  [data-testid="stMetricValue"]{font-size:1.4rem;}
+  .hero{padding:24px;}
+ }
++@media(max-height:780px){
++ [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"]{gap:.875rem;}
++}
+diff --git a/app/components/runtime.py b/app/components/runtime.py
+index 4d9f0a1..c8af09b 100644
+--- a/app/components/runtime.py
++++ b/app/components/runtime.py
+@@ -50,19 +50,31 @@ REAL_DATA_FILES = ("train_merged.csv", "train.csv")
+
+ def available_real_data():
+     """返回 data/raw 下存在的真实数据文件（合并 105 万数据优先）。"""
+-    return [name for name in REAL_DATA_FILES if (ROOT / "data" / "raw" / name).exists()]
++    return [name for name in REAL_DATA_FILES if (ROOT / "data" / "raw" / name).is_file()]
+
+
+ @st.cache_resource(show_spinner="正在加载本地真实数据…")
++def _read_real_data(path, stamp):
++    from src.pipeline.orchestrator import validate_training_data
++    return validate_training_data(pd.read_csv(path))
++
++
+ def load_real_data(name):
+-    return pd.read_csv(ROOT / "data" / "raw" / name)
++    if name not in REAL_DATA_FILES:
++        raise ValueError("请选择 train_merged.csv 或 train.csv")
++    path = ROOT / "data" / "raw" / name
++    return _read_real_data(str(path), path.stat().st_mtime_ns).copy()
+
+
+ def current_data():
+     if not public_mode():
+         source = st.session_state.get("data_source")
+-        if source in REAL_DATA_FILES and (ROOT / "data" / "raw" / source).exists():
+-            return load_real_data(source)
++        if source in REAL_DATA_FILES:
++            try:
++                return load_real_data(source)
++            except (OSError, ValueError, pd.errors.ParserError, UnicodeDecodeError) as error:
++                st.error(f"当前真实数据无法读取：{error}。请到数据探索页重新选择数据。")
++                st.stop()
+         if "active_data" in st.session_state:
+             return st.session_state["active_data"].copy()
+     path = ROOT / "demo_assets/sample.json"
 diff --git a/app/components/sidebar.py b/app/components/sidebar.py
-index 13678d4..bd5978c 100644
+index bd5978c..4e5e45d 100644
 --- a/app/components/sidebar.py
 +++ b/app/components/sidebar.py
-@@ -37,4 +37,3 @@ def render_sidebar():
-         source = bundle["meta"]["source"] if bundle else "暂无训练产物"
-         st.success("合成数据演示 · 可放心体验") if source == "合成演示数据" else st.info(source)
-         st.caption("公开展示模式" if public_mode() else "本地开发模式")
--        st.caption("本项目用于课程学习与答辩，预测结果仅供演示。")
-diff --git a/app/pages/2_🔧_特征工程.py b/app/pages/2_🔧_特征工程.py
-index c3a619f..e5581da 100644
---- a/app/pages/2_🔧_特征工程.py
-+++ b/app/pages/2_🔧_特征工程.py
-@@ -31,6 +31,7 @@ with clean:
-         st.dataframe(after.head(20), use_container_width=True)
-         st.caption("此处仅演示处理过程；正式训练时只在训练集拟合预处理参数。")
- with derived:
-+    st.info("新增 11 项候选业务特征。验证集筛选后，稳健训练默认启用等级和稳定就业两个标记，其余候选保留供后续真实数据评估。")
-     st.dataframe(pd.DataFrame([{"特征": r.name, "业务含义": r.description, "操作": r.operation}
-                                for r in cfg.features]), hide_index=True, use_container_width=True)
-     result = ProjectFeatureBuilder(cfg.features).build(data)
-@@ -67,6 +68,8 @@ with assistant:
-             from app.components.settings_editor import save_settings
-             rules = [r for r in cfg.features if r.name != suggestion["name"]]
-             cfg.features = rules + [suggestion]
-+            if cfg.get("training", {}).get("feature_names") is not None:
-+                cfg.training.feature_names = list(dict.fromkeys(cfg.training.feature_names + [suggestion["name"]]))
-             try:
-                 save_settings(cfg.to_dict())
-                 st.success("已保存。后续训练将使用此规则，已有模型继续使用原训练规则。")
-diff --git a/app/pages/3_🤖_模型训练.py b/app/pages/3_🤖_模型训练.py
-index b0118a9..66bc1f7 100644
---- a/app/pages/3_🤖_模型训练.py
-+++ b/app/pages/3_🤖_模型训练.py
-@@ -2,6 +2,7 @@ import sys
- from pathlib import Path
- sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
- 
-+import copy
- import pandas as pd
+@@ -6,9 +6,9 @@ import streamlit as st
+ def render_sidebar():
+     from app.components.runtime import ROOT, public_mode
+     with st.sidebar:
+-        st.markdown('<div class="brand-icon">◈</div><div class="brand-name">智能风控<span>CREDIT RISK LAB</span></div>',
++        st.markdown('<div class="sidebar-brand"><div class="brand-icon">◈</div>'
++                    '<div class="brand-name">智能风控<span>CREDIT RISK LAB</span></div></div>',
+                     unsafe_allow_html=True)
+-        st.caption("从模型判断，到可解释决策")
+         links = [("streamlit_app.py", "工作台", "🏠"),
+                  ("pages/1_📊_数据探索.py", "数据探索", "📊"),
+                  ("pages/2_🔧_特征工程.py", "特征工程", "🔧"),
+diff --git a/app/pages/1_📊_数据探索.py b/app/pages/1_📊_数据探索.py
+index 9786923..7fcb5e2 100644
+--- a/app/pages/1_📊_数据探索.py
++++ b/app/pages/1_📊_数据探索.py
+@@ -6,7 +6,8 @@ import pandas as pd
  import plotly.express as px
  import streamlit as st
-@@ -16,17 +17,22 @@ else:
-     with st.container(border=True):
-         st.caption("当前训练数据：" + source_label())
-         names = st.multiselect("选择模型", ["xgboost", "lightgbm", "mlp"], default=["xgboost", "lightgbm", "mlp"])
-+        profile = st.selectbox("训练方案", ["稳健配置（浅树与正则化）", "原基础配置"])
-+        enhanced = st.checkbox("使用经验证的增强衍生特征", value=True)
-+        st.caption("稳健方案默认启用原 5 项衍生特征及等级、稳定就业两个标记。更多候选可在特征工程页查看。")
-         left, middle, right = st.columns(3)
-         quick = left.checkbox("快速教学配置", value=True)
-         tune = middle.checkbox("使用 Optuna 调参")
-         metric = right.selectbox("调参目标", ["auc", "ks"])
-         multi = st.checkbox("同时考虑预测指标和模型深度（多目标优化）", disabled=not tune)
-         trials = st.number_input("Optuna 试验次数", 1, 50, 3, disabled=not tune)
--        st.caption("快速配置：80 棵树、MLP 最多 8 轮；基础模型配置文件保持原样。")
-+        st.caption("稳健方案从个人扩展配置读取；原基础方案保留快速预算。所有方案都复用同学的模型类。")
-         if st.button("开始训练", type="primary"):
-             try:
-                 pipeline = TrainingPipeline(configs)
--                pipeline.project_cfg = cfg
-+                pipeline.project_cfg = copy.deepcopy(cfg)
-+                if not enhanced:
-+                    pipeline.project_cfg.features = pipeline.project_cfg.features[:5]
-                 pipeline.project_cfg.demo.trials = trials
-                 pipeline.model_cfg.xgboost.tuning.metric = metric
-                 pipeline.model_cfg.xgboost.tuning.multi_objective = multi
-@@ -36,6 +42,7 @@ else:
-                     progress.progress(percent, text=label)
-                 result = pipeline.run(data=current_data(), use_sample=source_label() == "合成演示数据",
-                                       model_names=names, quick=quick, skip_tuning=not tune,
-+                                      training_profile="robust" if profile.startswith("稳健") else "original",
-                                       progress_callback=callback)
-                 st.session_state["next_artifact_source"] = "本地最新训练"
-                 st.session_state.pop("prediction", None)
-@@ -51,6 +58,26 @@ if bundle:
-     st.dataframe(pd.DataFrame(bundle["eval_results"]).T, use_container_width=True)
-     st.caption(f'版本 {bundle["meta"]["run_id"]} · 训练 {bundle["meta"]["train_samples"]} / '
-                f'验证 {bundle["meta"]["val_samples"]} / 测试 {bundle["meta"]["test_samples"]} 条')
-+    st.caption("训练方案：" + bundle["meta"].get("training_profile", "原始审阅版"))
-+    st.info("AUC 衡量排序能力，调整分类阈值不会提高 AUC。增加特征也不保证每项指标同时上升，请结合验证集、KS、F1 和 log loss 查看。")
-+    if bundle.get("previous_eval_results"):
-+        with st.expander("同一数据与划分的修改前后对照", expanded=True):
-+            rows = []
-+            for name, now in bundle["eval_results"].items():
-+                before = bundle["previous_eval_results"].get(name, {})
-+                rows.append({"模型": name, "原 AUC": before.get("auc"), "本次 AUC": now["auc"],
-+                             "原 KS": before.get("ks"), "本次 KS": now["ks"],
-+                             "原 log loss": before.get("log_loss"), "本次 log loss": now["log_loss"]})
-+            st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
-+            st.caption("使用原来的合成数据、标签、随机种子与训练/验证/测试划分。只在验证集选择方案，表中测试指标不参与选择。")
-+    with st.expander("验证集结果与学习到的特征重要性"):
-+        if bundle.get("validation_results"):
-+            st.dataframe(pd.DataFrame(bundle["validation_results"]).T, use_container_width=True)
-+        tree = bundle["models"].get("xgboost")
-+        if tree is not None:
-+            importance = tree.get_feature_importance().head(20).rename("gain").rename_axis("特征").reset_index()
-+            st.dataframe(importance, hide_index=True, use_container_width=True)
-+            st.caption("重要性来自训练后树模型的分裂收益，并非手工提高显示权重。树模型中单纯放大某列的数值通常不会改善排序。")
-     if bundle.get("tuning_history"):
-         with st.expander("Optuna 试验记录", expanded=True):
-             history = pd.DataFrame(bundle["tuning_history"])
+
+-from app.components.runtime import ROOT, available_real_data, current_data, generated_data, init_page, public_mode, source_label
++from app.components.runtime import ROOT, available_real_data, current_data, init_page, load_real_data, public_mode, source_label
++from src.pipeline.orchestrator import validate_training_data
+
+ _, cfg = init_page("数据探索", "从样本规模、缺失情况与变量分布，了解当前数据。", "DATA")
+ if not public_mode():
+@@ -18,9 +19,9 @@ if not public_mode():
+                 if uploaded.size > cfg.demo.max_upload_mb*1024*1024:
+                     raise ValueError("文件超过 20 MB；大数据请放入本地 data/raw 目录")
+                 frame = pd.read_csv(uploaded)
+-                from src.pipeline.orchestrator import validate_training_data
+                 validate_training_data(frame)
+                 if st.button("使用这份数据", type="primary"):
++                    st.session_state.pop("data_source", None)
+                     st.session_state["active_data"] = frame
+                     st.session_state["data_label"] = "用户上传：" + uploaded.name
+                     st.success("当前数据源已更新，训练页面将使用此数据。")
+@@ -31,21 +32,32 @@ if not public_mode():
+         if not files:
+             st.info(f"未找到真实数据文件，请将 train_merged.csv 或 train.csv 放入 {ROOT / 'data' / 'raw'}")
+         else:
+-            labels = {"train_merged.csv": "天池 + Lending Club 合并数据（约 105 万行）",
+-                      "train.csv": "天池数据（约 80 万行）"}
++            labels = {"train_merged.csv": "天池 + Lending Club 合并数据",
++                      "train.csv": "天池数据"}
+             selected = st.selectbox("选择数据文件", files,
+                                     format_func=lambda name: f"{name} · {labels.get(name, '')}")
+             if st.button("加载本地真实数据", type="primary"):
+-                st.session_state["data_source"] = selected
+-                st.session_state["data_label"] = f"本地真实数据：{selected}"
+-                st.session_state.pop("active_data", None)
+-                st.success(f"已加载 {selected}，全站数据源已切换（首次加载大文件可能需要几秒到几十秒）。")
++                try:
++                    count = len(load_real_data(selected))
++                except (OSError, ValueError, pd.errors.ParserError, UnicodeDecodeError) as error:
++                    st.error(f"加载失败：{error}")
++                else:
++                    st.session_state["data_source"] = selected
++                    st.session_state["data_label"] = f"本地真实数据：{selected}"
++                    st.session_state.pop("active_data", None)
++                    st.success(f"已加载 {selected}，共 {count:,} 行，数据源已切换。")
+     elif choice == "本地天池 CSV":
+         path = ROOT / "data/raw/train.csv"
+         if path.exists():
+             if st.button("加载前 20,000 行用于页面探索"):
+-                st.session_state["active_data"] = pd.read_csv(path, nrows=20000)
+-                st.session_state["data_label"] = "天池数据（前 20,000 行）"
++                try:
++                    frame = validate_training_data(pd.read_csv(path, nrows=20000))
++                except (OSError, ValueError, pd.errors.ParserError, UnicodeDecodeError) as error:
++                    st.error(f"加载失败：{error}")
++                else:
++                    st.session_state.pop("data_source", None)
++                    st.session_state["active_data"] = frame
++                    st.session_state["data_label"] = f"天池数据（前 {len(frame):,} 行）"
+         else:
+             st.info(f"请将 train.csv 放入 {path.parent}")
+     elif st.button("恢复合成演示数据"):
+diff --git a/app/pages/2_🔧_特征工程.py b/app/pages/2_🔧_特征工程.py
+index e5581da..cbbd466 100644
+--- a/app/pages/2_🔧_特征工程.py
++++ b/app/pages/2_🔧_特征工程.py
+@@ -14,7 +14,7 @@ configs, cfg = init_page("特征工程", "查看清洗效果，构造业务特
+ data = current_data().drop(columns=["id", "isDefault"], errors="ignore")
+ clean, derived, assistant = st.tabs(["预处理与 KNN", "衍生特征", "LLM 特征建议"])
+ with clean:
+-    st.info("沿用同学的 KNN 填充：dti（负债收入比）、revolUtil（信用利用率）。")
++    st.info("KNN 填充：dti（负债收入比）、revolUtil（信用利用率）。")
+     if st.button("预览前 500 行预处理效果", type="primary"):
+         feature_cfg = copy.deepcopy(configs.get("feature"))
+         feature_cfg.scaling.method = "none"
 diff --git a/app/pages/4_🎯_单笔预测.py b/app/pages/4_🎯_单笔预测.py
-index a09b4da..912844d 100644
+index 912844d..10ab79c 100644
 --- a/app/pages/4_🎯_单笔预测.py
 +++ b/app/pages/4_🎯_单笔预测.py
-@@ -1,3 +1,4 @@
-+import json
- import sys
- from pathlib import Path
- sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-@@ -8,10 +9,24 @@ from app.components.chart_utils import gauge_chart
- from app.components.explanations import render_single, single_explanation
- from app.components.forms import loan_form
- from app.components.runtime import (example_report, init_page, llm_tools, require_service,
--                                    risk_limits, rules_agent, saved_prediction, stream_to_state)
-+                                    public_mode, risk_limits, saved_prediction, stream_to_state)
-+from src.llm.agents.compliance_agent import ComplianceAgent
- from src.pipeline.inference import decision_for, risk_level
- 
-+
-+def render_compliance_result(result):
-+    message = "已执行的课程规则检查通过" if result["is_compliant"] else "存在需要复核的课程规则事项"
-+    (st.success if result["is_compliant"] else st.warning)(message)
-+    for item in result["violations"]:
-+        st.error(item["rule"] + "：" + item["reason"])
-+    for warning in result["warnings"]:
-+        st.warning(warning)
-+    for recommendation in result["recommendations"]:
-+        st.write("• " + recommendation)
-+
-+
+@@ -26,7 +26,7 @@ def render_compliance_result(result):
+
+
  _, cfg = init_page("单笔风险评估", "输入一笔贷款申请，查看模型判断、关键因素和辅助审批建议。", "PREDICTION")
-+st.info("7.2 政策合规检查已接入：完成下方风险评估后，打开“7.2 政策合规检查”标签，可填写 LPR、年龄、证明材料和用途，并调用 DeepSeek 逐条检查。")
+-st.info("7.2 政策合规检查已接入：完成下方风险评估后，打开“7.2 政策合规检查”标签，可填写 LPR、年龄、证明材料和用途，并调用 DeepSeek 逐条检查。")
++st.info("完成风险评估后，可在“政策合规检查”中核对申请资料和审批结果。")
  service, bundle = require_service()
  low, high = risk_limits(bundle)
  model_name = st.selectbox("评估模型", list(service.models))
-@@ -42,7 +57,7 @@ if prediction:
+@@ -57,7 +57,7 @@ if prediction:
      with right:
          st.metric("预计月供", f'{prediction["features"]["installment"]:,.0f} 元')
          st.metric("年收入", f'{prediction["features"]["annualIncome"]:,.0f} 元')
--    tab1, tab2, tab3 = st.tabs(["风险解释", "风险报告", "教学规则检查"])
-+    tab1, tab2, tab3 = st.tabs(["风险解释", "风险报告", "7.2 政策合规检查"])
+-    tab1, tab2, tab3 = st.tabs(["风险解释", "风险报告", "7.2 政策合规检查"])
++    tab1, tab2, tab3 = st.tabs(["风险解释", "风险报告", "政策合规检查"])
      with tab1:
          render_single(prediction["explanation"], f'SHAP 解释对象：{prediction["explanation_model"]}')
          if prediction["model_name"] != prediction["explanation_model"]:
-@@ -63,26 +78,68 @@ if prediction:
-         st.markdown(report)
+@@ -79,7 +79,7 @@ if prediction:
          st.download_button("下载当前报告", report, file_name="risk_report.md", mime="text/markdown")
      with tab3:
-+        st.subheader("政策合规检查 Agent · 课程演示")
-+        st.caption("规则来源为指导书 7.2 和项目配置。4 倍 LPR、年龄证明及用途限制是本项目的课程规则，不代表全国通用法律；结果供人工复核参考。")
-+        client, prompts, llm_cfg = llm_tools()
-+        agent = ComplianceAgent(client, prompts, cfg.compliance, agent_config=llm_cfg.agents.compliance)
-+        a, b, c = st.columns(3)
-         choices = ["建议通过", "人工复核", "建议拒绝"]
--        decision = st.selectbox("待检查的审批建议", choices, index=choices.index(decision_for(p, low, high)))
--        result = rules_agent().check(prediction["features"], decision, probability=p, low=low, high=high)
--        (st.success if result["is_compliant"] else st.warning)("当前教学规则检查通过" if result["is_compliant"] else "存在需要核对的事项")
--        for item in result["violations"]:
--            st.error(item["reason"])
--        for warning in result["warnings"]:
--            st.warning(warning)
--        for recommendation in result["recommendations"]:
--            st.write("• " + recommendation)
--        client, _, _ = llm_tools()
--        if client.configured and st.button("让规则检查 Agent 解释结果"):
-+        with a:
-+            decision = st.selectbox("待检查的审批建议", choices, index=choices.index(decision_for(p, low, high)))
-+            lpr = st.number_input("检查使用的 LPR（%）", min_value=0.01, max_value=30.0, value=3.0, step=0.05)
-+            st.caption("3.0% 只是可修改的演示值，请按课程或实际核对需要手工输入。")
-+        with b:
-+            age = st.number_input("申请人年龄", min_value=18, max_value=100, value=35)
-+            repayment_proof = st.checkbox("已提供额外还款能力证明")
-+        with c:
-+            rate = st.number_input("待检查的贷款年利率（%）", min_value=0.0, max_value=100.0,
-+                                   value=float(prediction["features"]["interestRate"]), step=0.1)
-+            purpose = st.selectbox("贷款用途", ["日常消费", "教育培训", "装修", "经营周转", "房地产投资", "其他"])
-+            if purpose == "其他":
-+                purpose = st.text_input("其他贷款用途", max_chars=100)
-+        custom_text = st.text_area("附加自定义检查规则（每行一条）", placeholder="例如：金额超过 10 万元时需要补充收入证明", max_chars=4000)
-+        extra_rules = [line.strip() for line in custom_text.splitlines() if line.strip()]
-+        check_features = dict(prediction["features"])
-+        check_features.update(age=age, repayment_proof=repayment_proof, loan_purpose=purpose, lpr=lpr,
-+                              interestRate=rate)
-+        with st.expander("查看当前全部检查规则与 7.2 实现位置"):
-+            for rule in agent.rule_list(extra_rules):
-+                st.write("• " + rule)
-+            st.code("步骤 1：configs/prompts/compliance_check.j2\n步骤 2：src/llm/agents/compliance_agent.py\n步骤 3：configs/llm_config.yaml → agents.compliance\n步骤 4：单笔预测 → 7.2 政策合规检查", language="text")
-+        st.subheader("1. 本地规则检查 · 无 API 费用")
-+        if not agent.enabled:
-+            st.warning("政策合规检查 Agent 已在 agents.compliance.enabled 中关闭，本地与 DeepSeek 检查均停止。")
-+        else:
-+            result = agent.check(check_features, decision, interest_rate=rate, rules=extra_rules,
-+                                 probability=p, low=low, high=high)
-+            render_compliance_result(result)
-+        st.caption("修改这里只影响规则检查输入，不会重新训练模型或改动上方预测。附加自定义规则由 DeepSeek 或人工核对，本地程序不执行自由文本。")
-+        st.subheader("2. DeepSeek 逐条检查 · 真实 API 调用")
-+        if public_mode():
-+            st.info("公开演示只展示本地规则结果，不调用 DeepSeek。")
-+        elif not client.configured:
-+            st.info("本地配置 DeepSeek 后可进行真实检查；密钥不显示在页面中。")
-+        signature = json.dumps({"features": check_features, "decision": decision, "rules": extra_rules,
-+                                "probability": p, "run_id": prediction["run_id"]}, sort_keys=True, default=str)
-+        if st.button("使用 DeepSeek 执行政策合规检查", type="primary",
-+                     disabled=not agent.enabled or public_mode() or not client.configured):
-             try:
--                st.session_state["compliance_llm"] = rules_agent().check(
--                    prediction["features"], decision, interest_rate=prediction["features"]["interestRate"],
--                    probability=p, low=low, high=high, use_llm=True)
-+                with st.spinner("正在逐条核对课程规则和附加规则…"):
-+                    result = agent.check(check_features, decision, interest_rate=rate, rules=extra_rules,
-+                                         probability=p, low=low, high=high, use_llm=True)
-+                st.session_state["compliance_llm"] = result
-+                st.session_state["compliance_signature"] = signature
-             except (ValueError, RuntimeError) as error:
-+                st.session_state.pop("compliance_llm", None)
-+                st.session_state.pop("compliance_signature", None)
-                 st.error(str(error))
--        if "compliance_llm" in st.session_state:
--            st.json(st.session_state["compliance_llm"])
--        st.caption("教学规则和阈值由项目配置决定，结果供课程展示和人工复核参考。")
-+        if st.session_state.get("compliance_signature") == signature and agent.enabled and not public_mode():
-+            llm_result = st.session_state["compliance_llm"]
-+            st.caption("以下为 DeepSeek 返回并通过四字段 JSON 格式检查的结果。")
-+            render_compliance_result(llm_result)
-+            with st.expander("查看 DeepSeek 原始结构化结果"):
-+                st.json(llm_result["llm_analysis"])
-+        elif "compliance_llm" in st.session_state:
-+            st.caption("检查输入已变化，原结果已隐藏，请重新执行 DeepSeek 检查。")
- else:
-     st.info("完成表单后，结果会保留在当前会话，并同步给智能助手与情景对比页面。")
+         st.subheader("政策合规检查 Agent · 课程演示")
+-        st.caption("规则来源为指导书 7.2 和项目配置。4 倍 LPR、年龄证明及用途限制是本项目的课程规则，不代表全国通用法律；结果供人工复核参考。")
++        st.caption("规则来源为课程指导书和项目配置。4 倍 LPR、年龄证明及用途限制是本项目的课程规则，不代表全国通用法律；结果供人工复核参考。")
+         client, prompts, llm_cfg = llm_tools()
+         agent = ComplianceAgent(client, prompts, cfg.compliance, agent_config=llm_cfg.agents.compliance)
+         a, b, c = st.columns(3)
+@@ -102,10 +102,10 @@ if prediction:
+         check_features = dict(prediction["features"])
+         check_features.update(age=age, repayment_proof=repayment_proof, loan_purpose=purpose, lpr=lpr,
+                               interestRate=rate)
+-        with st.expander("查看当前全部检查规则与 7.2 实现位置"):
++        with st.expander("查看检查规则与实现位置"):
+             for rule in agent.rule_list(extra_rules):
+                 st.write("• " + rule)
+-            st.code("步骤 1：configs/prompts/compliance_check.j2\n步骤 2：src/llm/agents/compliance_agent.py\n步骤 3：configs/llm_config.yaml → agents.compliance\n步骤 4：单笔预测 → 7.2 政策合规检查", language="text")
++            st.code("步骤 1：configs/prompts/compliance_check.j2\n步骤 2：src/llm/agents/compliance_agent.py\n步骤 3：configs/llm_config.yaml → agents.compliance\n步骤 4：单笔预测 → 政策合规检查", language="text")
+         st.subheader("1. 本地规则检查 · 无 API 费用")
+         if not agent.enabled:
+             st.warning("政策合规检查 Agent 已在 agents.compliance.enabled 中关闭，本地与 DeepSeek 检查均停止。")
 diff --git a/app/pages/6_💬_LLM智能助手.py b/app/pages/6_💬_LLM智能助手.py
-index 11b4f83..8de9c73 100644
+index 8de9c73..d3cb8cc 100644
 --- a/app/pages/6_💬_LLM智能助手.py
 +++ b/app/pages/6_💬_LLM智能助手.py
-@@ -8,7 +8,7 @@ import streamlit as st
- 
- from app.components.explanations import single_explanation
- from app.components.runtime import (current_data, example_report, init_page, llm_tools,
--                                    require_service, risk_limits, saved_prediction, stream_to_state)
-+                                    public_mode, require_service, risk_limits, saved_prediction, stream_to_state)
- 
- init_page("LLM 智能助手", "围绕当前数据、模型和申请记录，理解预测背后的业务含义。", "ASSISTANT")
- service, bundle = require_service()
-@@ -93,3 +93,77 @@ else:
-             st.markdown(st.session_state["case_report"])
-         elif not client.configured:
-             st.markdown("**示例诊断**：这是一个错误案例，应结合数据质量、特征覆盖和模型泛化能力排查。没有调用 LLM，不能据此确认错误根因。")
-+
-+st.divider()
-+st.subheader("LLM 用量与费用")
-+st.caption("按 API 返回的 Token 用量估算人民币费用，默认按高峰单价估算上限；不是账户余额，也不会代替 DeepSeek 的实际账单。仅统计启用本功能后的调用。")
-+if public_mode():
-+    columns = st.columns(3)
-+    columns[0].metric("示例输入 Token", "0")
-+    columns[1].metric("示例输出 Token", "0")
-+    columns[2].metric("示例费用", "¥0.000000")
-+    st.caption("示例内容由本地模板生成，没有调用 API，也不会写入计费账本。")
-+else:
-+    if not client.configured:
-+        st.caption("当前未配置真实连接，新示例不计费；下面仍可查看本机已有的历史调用记录。")
-+    tracker = client.billing
-+    totals = tracker.summary()
-+    recent = tracker.records(20)
-+    latest = client.last_billing or (recent[0] if recent else None)
-+
-+    def show_tokens(value):
-+        return "未返回" if value is None else f"{value:,}"
-+
-+    def show_cost(record):
-+        if record.get("cost_cny") is not None:
-+            return f'¥{record["cost_cny"]:.6f}'
-+        if record.get("cost_min_cny") is not None:
-+            return f'¥{record["cost_min_cny"]:.6f}～¥{record["cost_max_cny"]:.6f}'
-+        return "待核实"
-+
-+    if latest:
-+        columns = st.columns(3)
-+        columns[0].metric("最近一次输入 Token", show_tokens(latest["prompt_tokens"]))
-+        columns[1].metric("最近一次输出 Token", show_tokens(latest["completion_tokens"]))
-+        columns[2].metric("最近一次费用估算", show_cost(latest))
-+        st.caption(f'模型：{latest["model"]} · 时间（UTC）：{latest["timestamp"]} · 输入/输出含多轮历史及思考等服务端计入的用量。')
-+    else:
-+        st.info("还没有真实调用记录。完成一次对话、风险报告、特征建议或规则检查后可在这里查看。")
-+    columns = st.columns(4)
-+    columns[0].metric("累计已知输入 Token", f'{totals["prompt_tokens"]:,}')
-+    columns[1].metric("累计已知输出 Token", f'{totals["completion_tokens"]:,}')
-+    columns[2].metric("累计已估算费用", f'¥{totals["cost_cny"]:.6f}')
-+    columns[3].metric("调用记录数", totals["calls"])
-+    if totals["pending_calls"]:
-+        st.warning(f'有 {totals["pending_calls"]} 次调用的用量、缓存拆分或模型价格待核实，未计入累计费用；不能据此认为这些调用免费。')
-+    if tracker.last_error:
-+        st.warning(tracker.last_error)
-+    with st.expander("最近调用、计价单价与统计说明"):
-+        statuses = {"estimated": "已估算", "usage_missing": "用量未完整返回", "price_unknown": "模型单价待配置",
-+                    "cache_split_missing": "缓存拆分缺失，显示区间", "usage_invalid": "用量不一致",
-+                    "price_config_error": "计费配置异常，费用待核实"}
-+        if recent:
-+            rows = [{"时间（UTC）": row["timestamp"], "模型": row["model"], "流式": row["stream"],
-+                     "输入 Token": row["prompt_tokens"], "缓存命中": row["cache_hit_tokens"],
-+                     "缓存未命中": row["cache_miss_tokens"], "输出 Token": row["completion_tokens"],
-+                     "费用估算（元）": show_cost(row), "状态": statuses.get(row["billing_status"], row["billing_status"]),
-+                     "请求状态": row["status"], "计价时段": row["price_period"]} for row in recent]
-+            st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
-+        try:
-+            billing_cfg = tracker.config()
-+            price_rows = []
-+            for name, item in billing_cfg.get("models", {}).items():
-+                for period, label in (("peak", "高峰"), ("off_peak", "空闲")):
-+                    rate = item[period]
-+                    price_rows.append({"模型": name, "时段": label,
-+                                       "输入缓存命中": rate["input_cache_hit"],
-+                                       "输入缓存未命中": rate["input_cache_miss"], "输出": rate["output"]})
-+            st.markdown("**人民币元 / 百万 Token**")
-+            st.dataframe(pd.DataFrame(price_rows), hide_index=True, use_container_width=True)
-+            st.caption(f'价格核实日期：{billing_cfg.get("verified_on")}；当前计价配置：{billing_cfg.get("period")}。')
-+            st.write(billing_cfg.get("period_note", ""))
-+            st.caption(billing_cfg.get("official_peak_hours", ""))
-+            st.link_button("查看 DeepSeek 官方价格", billing_cfg["source_url"])
-+        except (OSError, ValueError, KeyError, TypeError):
-+            st.warning("计费配置暂时无法读取，请检查 configs/billing_config.yaml。")
-+        st.caption("本地账本位于 .local/llm_billing.sqlite3，跨会话保存调用时间、模型、Token、费率快照与估算费用，不保存问题、回答或 API 密钥。历史记录按调用当时配置保存，不随新费率重算。")
-diff --git a/configs/llm_config.yaml b/configs/llm_config.yaml
-index b6963a5..14e62dc 100644
---- a/configs/llm_config.yaml
-+++ b/configs/llm_config.yaml
-@@ -77,6 +77,11 @@ prompts:
- # ===== Agent 行为配置 =====
- agents:
- 
-+  compliance:
-+    enabled: true
-+    temperature: 0.1
-+    max_tokens: 2000
-+
-   # 风险报告 Agent
-   report_agent:
-     enabled: true
-diff --git a/configs/project_config.yaml b/configs/project_config.yaml
-index 63ed9c0..fe097e0 100644
---- a/configs/project_config.yaml
-+++ b/configs/project_config.yaml
-@@ -9,12 +9,59 @@ demo:
-   epochs: 8
-   trials: 3
-   max_upload_mb: 20
-+training:
-+  default_profile: robust
-+  knn_reference_limit: 5000
-+  feature_names: [monthly_income, installment_to_income_ratio, fico_avg, loan_to_income_ratio, revol_util_bucket, lower_grade_flag, long_employment_flag]
-+  xgboost:
-+    max_depth: 3
-+    n_estimators: 250
-+    learning_rate: 0.03
-+    min_child_weight: 20
-+    subsample: 0.9
-+    colsample_bytree: 1.0
-+    reg_alpha: 0.5
-+    reg_lambda: 10.0
-+    scale_pos_weight: 1.0
-+  lightgbm:
-+    num_leaves: 15
-+    max_depth: 4
-+    min_child_samples: 100
-+    n_estimators: 250
-+    learning_rate: 0.03
-+    colsample_bytree: 1.0
-+    reg_alpha: 0.5
-+    reg_lambda: 20.0
-+    scale_pos_weight: 1.0
-+  mlp:
-+    architecture:
-+      hidden_layers: [32, 16]
-+      dropout: 0.2
-+      batch_norm: false
-+    training:
-+      epochs: 50
-+      learning_rate: 0.003
-+      weight_decay: 0.01
-+      class_weight: none
-+      scheduler: none
-+      early_stopping: {enabled: true, patience: 10, min_delta: 0.0001}
- features:
-   - {name: monthly_income, operation: monthly_income, description: 月收入}
-   - {name: installment_to_income_ratio, operation: payment_ratio, description: 月供收入比}
-   - {name: fico_avg, operation: fico_mean, description: 信用评分均值}
-   - {name: loan_to_income_ratio, operation: ratio, numerator: loanAmnt, denominator: annualIncome, description: 贷款收入比}
-   - {name: revol_util_bucket, operation: bucket, column: revolUtil, bins: [-.inf, 30, 60, 90, .inf], description: 信用利用率分箱}
-+  - {name: income_log, operation: log1p, column: annualIncome, description: 年收入对数，减小极端收入影响}
-+  - {name: loan_log, operation: log1p, column: loanAmnt, description: 贷款金额对数}
-+  - {name: revolving_balance_log, operation: log1p, column: revolBal, description: 循环余额对数}
-+  - {name: annual_interest_to_income, operation: annual_interest_ratio, description: 年度利息与收入比}
-+  - {name: credit_history_years, operation: credit_history, description: 发放时已有信用历史年数}
-+  - {name: open_account_ratio, operation: ratio_plus_one, numerator: openAcc, denominator: totalAcc, description: 活跃信用账户占比}
-+  - {name: delinquency_per_account, operation: ratio_plus_one, numerator: delinquency_2years, denominator: openAcc, description: 每个活跃账户的逾期负担}
-+  - {name: public_record_total, operation: sum, left: pubRec, right: pubRecBankruptcies, description: 公开记录和破产记录合计}
-+  - {name: monthly_debt_surplus, operation: debt_surplus, description: 扣除存量负债和本次月供后的月收入估算}
-+  - {name: lower_grade_flag, operation: category_flag, column: grade, values: [E, F, G], description: 较低信用等级标记}
-+  - {name: long_employment_flag, operation: category_flag, column: employmentLength, values: [10+ years], description: 十年以上稳定就业标记}
- ab_test:
-   model_a: xgboost
-   model_b: lightgbm
-diff --git a/configs/prompts/compliance_check.j2 b/configs/prompts/compliance_check.j2
-index 6ec627d..57c0cf5 100644
---- a/configs/prompts/compliance_check.j2
-+++ b/configs/prompts/compliance_check.j2
-@@ -1,9 +1,31 @@
--你是信贷课程演示的审批规则检查助手。
--以下为项目自定义的教学规则，输出不得声称是真实法律审查结论。
--申请信息：{{ features | tojson }}
--审批建议：{{ decision }}，利率：{{ interest_rate }}
--规则：{{ rules | tojson }}
--确定性规则检查结果：{{ rule_result | tojson }}
--请用通俗语言说明问题和改进方向，只返回 JSON：
--{"summary":"检查摘要","reasons":["原因"],"recommendations":["建议"]}
--不得编造法规，不得要求申请人通过改变真实信息规避审核。
-+你是信贷课程中的政策合规检查助手，负责按给定规则逐条核对申请资料和审批结果。
-+以下规则是课程演示约定，包括 4 倍 LPR、年龄证明和贷款用途示例；不得将其表述为全国通用法律或实际监管结论。
-+
-+申请人信息：
-+{{ features | tojson(indent=2) }}
-+
-+审批结果：
-+- 决策：{{ decision }}
-+- 贷款年利率：{{ interest_rate }}%
-+- LPR 使用申请信息中输入的 lpr 值，不查询或编造当前 LPR。
-+
-+待检查规则：
-+{% for rule in rules %}
-+- {{ rule }}
-+{% endfor %}
-+
-+本地程序已经完成的检查：
-+{{ rule_result | tojson(indent=2) }}
-+
-+逐条检查全部规则，包括用户附加规则。信息不足时写入 warnings 并建议补充，不要编造事实。
-+本地已发现的违规项应保留；额外还款能力证明以 repayment_proof 布尔值为准，年龄为 age，用途为 loan_purpose。
-+只返回以下四个字段组成的完整 JSON 对象，不输出 Markdown 或解释前缀。
-+{
-+  "is_compliant": false,
-+  "violations": [{"rule": "违反的具体课程规则", "reason": "基于输入事实的原因"}],
-+  "warnings": ["缺失信息或需人工核对的事项"],
-+  "recommendations": ["可操作的复核建议"]
-+}
-+is_compliant 必须是 JSON 布尔值；存在违规时为 false，无违规时为 true。
-+无违规时 violations 使用空数组；其余列表可为空，列表元素必须是文本。
-+不得要求申请人修改真实信息规避审核；不得声称已完成实际法律审查。
-diff --git a/demo_assets/bundle.joblib b/demo_assets/bundle.joblib
-index 8b35189..b4b14fc 100644
-Binary files a/demo_assets/bundle.joblib and b/demo_assets/bundle.joblib differ
-diff --git a/docs/免费部署说明.md b/docs/免费部署说明.md
-index 6d3157f..eacea89 100644
---- a/docs/免费部署说明.md
-+++ b/docs/免费部署说明.md
-@@ -1,6 +1,6 @@
- # 免费公开展示部署说明
- 
--用户已授权代码检查通过后上传 GitHub；公网展示尚未发布。当前 http://127.0.0.1:8503 只用于本机查看。
-+上一版已上传 GitHub；2026-10-18 本次完善已经用户审阅并获准上传。公网展示尚未发布。当前 http://127.0.0.1:8503 只用于本机查看。
- 
- ## 部署选择
- 
+@@ -23,7 +23,8 @@ if mode == "自由对话":
+     for message in st.session_state[key]:
+         with st.chat_message(message["role"]):
+             st.markdown(message["content"])
+-    question = st.chat_input("例如：AUC 和 KS 有什么区别？")
++    with st.container():
++        question = st.chat_input("例如：AUC 和 KS 有什么区别？")
+     if question:
+         history = st.session_state[key]
+         with st.chat_message("user"):
+diff --git a/app/pages/8_模型监控.py b/app/pages/8_模型监控.py
+index 1d5d543..a4637f0 100644
+--- a/app/pages/8_模型监控.py
++++ b/app/pages/8_模型监控.py
+@@ -9,7 +9,7 @@ import streamlit as st
+ from app.components.runtime import init_page, require_service
+ from src.monitoring.drift_detector import DriftDetector
+
+-init_page("模型监控", "衔接同学的漂移检测器，比较基线与新样本的特征分布。", "MONITORING")
++init_page("模型监控", "比较基线与新样本的特征分布。", "MONITORING")
+ _, bundle = require_service()
+ baseline = bundle["raw_baseline"].copy()
+ new_data = bundle["raw_test"].copy()
+@@ -35,4 +35,4 @@ st.plotly_chart(px.histogram(plot, x=column, color="来源", barmode="overlay",
+                             color_discrete_sequence=["#3468ea", "#ed9b70"]), use_container_width=True)
+ report = detector.get_drift_report(new_data, threshold=threshold)
+ st.download_button("下载监控报告", report, file_name="drift_report.txt")
+-st.caption("检测逻辑来自同学的原始模块，页面沿用其阈值判定方式。分布变化提示排查，不直接证明模型效果下降。")
++st.caption("根据所选阈值判断特征分布是否出现明显变化。分布变化提示排查，不直接证明模型效果下降。")
+diff --git a/app/streamlit_app.py b/app/streamlit_app.py
+index ecb8c04..d2b4682 100644
+--- a/app/streamlit_app.py
++++ b/app/streamlit_app.py
+@@ -58,12 +58,11 @@ with right:
+         st.write("🟢 DeepSeek：已配置" if llm_tools()[0].configured else "⚪ DeepSeek：示例报告模式")
+         if bundle:
+             st.caption("模型版本：" + bundle["meta"]["run_id"])
+-        st.info("无需 API Key 即可体验预测、解释、规则检查与情景对比。")
+     with st.container(border=True):
+         st.subheader("本次扩展")
+         st.write("✓ 教学审批规则检查 Agent")
+         st.write("✓ XGBoost / LightGBM 稳定分流")
+         st.write("✓ 调整申请条件，比较风险变化")
+-        st.write("✓ 接入同学的 KNN、调参和漂移检测")
++        st.write("✓ 接入 KNN、调参和漂移检测")
+         st.page_link("pages/9_AB测试.py", label="查看 A/B 测试", icon="🧪")
+         st.page_link("pages/8_模型监控.py", label="查看模型监控", icon="📡")
 diff --git a/docs/拟提交说明.md b/docs/拟提交说明.md
-index 27d8c98..5287fa3 100644
+index 5287fa3..f9c5390 100644
 --- a/docs/拟提交说明.md
 +++ b/docs/拟提交说明.md
-@@ -1,20 +1,15 @@
--# 本次提交备注
-+# 本轮提交备注
- 
--标题：
-+fix: 改进固定数据训练效果并补齐政策 Agent 与 LLM 计费
- 
--feat: 完成个人负责的风控工具、LLM、训练编排及 Web 展示
-+- 在数据与标签不变的前提下，增加业务候选特征，按验证集选出等级/就业标记。
-+- 个人扩展配置增加浅树与正则化方案，继续复用同学原模型，保留原基础方案。
-+- 同划分测试 AUC：XGB 0.5803→0.6071、LGB 0.5317→0.5868、MLP 0.5521→0.6181、融合 0.5795→0.6184；如实记录召回率等取舍。
-+- 补齐 7.2 Prompt、Agent、配置注册与单笔预测页面入口，支持课程规则及自定义规则的真实结构化检查。
-+- 同步/流式记录真实 Token，按响应模型和可配置单价估算人民币费用，本机账本跨会话累计，公开模式不读私有账本。
-+- 计费配置故障不影响已生成回答，缺失用量与中断请求显示待核实，审计日志仅记录 Token 白名单。
-+- 114 项测试、11+11 页加载、12 项交互检查通过；真实同步/流式/政策 JSON 检查及计费联调通过。
-+- 同学原 25 个核心及最新 2 个 Lending Club 数据适配文件保持原样；合成数据/标签不变，.env、API、账本、日志及个人训练产物不上传。
-+- 删除用户指定的侧栏说明，顶部品牌样式保持原样。
- 
--内容：
+@@ -1,15 +1,18 @@
+ # 本轮提交备注
+
+-fix: 改进固定数据训练效果并补齐政策 Agent 与 LLM 计费
 -
--- 完成 4.1、4.3.4、4.6.4、4.7、4.8、5.1—5.6。
--- 增加 7.2 教学规则检查 Agent、7.5 A/B 测试、7.8 情景对比。
--- 按 7.7 完成各项扩展的页面展示，接入同学的 KNN、LightGBM、调参和漂移监控。
--- 保留同学 25 个核心文件，新增适配层处理衔接。
--- 修正流水线先划分再拟合，统一训练与预测转换状态。
--- 增加密钥忽略与脱敏、修改清单、答辩讲解和免费部署说明。
--- 使用 5,000 条合成数据联调，44 项测试通过，本地/公开模式页面检查通过。
--- DeepSeek 同步、流式、报告及结构化建议真实连接验证通过，密钥只保存在本地被忽略的 .env。
--- 未包含真实 API 密钥、真实客户数据或私人训练产物。
--- 公开演示站点仅提供模型预测和示例报告，实际部署另行完成。
+-- 在数据与标签不变的前提下，增加业务候选特征，按验证集选出等级/就业标记。
+-- 个人扩展配置增加浅树与正则化方案，继续复用同学原模型，保留原基础方案。
+-- 同划分测试 AUC：XGB 0.5803→0.6071、LGB 0.5317→0.5868、MLP 0.5521→0.6181、融合 0.5795→0.6184；如实记录召回率等取舍。
+-- 补齐 7.2 Prompt、Agent、配置注册与单笔预测页面入口，支持课程规则及自定义规则的真实结构化检查。
+-- 同步/流式记录真实 Token，按响应模型和可配置单价估算人民币费用，本机账本跨会话累计，公开模式不读私有账本。
+-- 计费配置故障不影响已生成回答，缺失用量与中断请求显示待核实，审计日志仅记录 Token 白名单。
+-- 114 项测试、11+11 页加载、12 项交互检查通过；真实同步/流式/政策 JSON 检查及计费联调通过。
+-- 同学原 25 个核心及最新 2 个 Lending Club 数据适配文件保持原样；合成数据/标签不变，.env、API、账本、日志及个人训练产物不上传。
+-- 删除用户指定的侧栏说明，顶部品牌样式保持原样。
 -
--用户已同意检查通过后上传。提交前核对文件、测试和远端 main，使用现有分支，不创建新分支。此文档记录提交备注，实际提交号以 Git 历史为准。
-+用户已明确同意本轮上传；提交前核对远端 main、扫描实际暂存内容。此文档记录备注，实际提交号以 Git 历史为准。公网展示尚未部署。
-diff --git a/docs/章节完成对照表.md b/docs/章节完成对照表.md
-index d18068c..2e29dea 100644
---- a/docs/章节完成对照表.md
-+++ b/docs/章节完成对照表.md
-@@ -3,19 +3,19 @@
- | 第一份文档编号 | 本次实现 | 查看方法 |
- |---|---|---|
- | 4.1 | 配置属性访问、环境变量安全插值、普通字典转换、统一日志、AUC/KS/F1/PR/ROC/混淆矩阵 | 系统配置、模型训练 |
--| 4.3.4 | 五项衍生规则、独立扩展配置、LLM 建议预览及支持的操作 | 特征工程 |
-+| 4.3.4 | 原五项规则及新增十一项业务候选；验证后默认七项，独立扩展配置、LLM 建议预览 | 特征工程、模型训练 |
- | 4.6.4 | Matplotlib SHAP 力图 | 单笔预测及模型解释中的力图标签 |
--| 4.7 | DeepSeek 客户端、同步/流式、重试/限流/脱敏/审计、模板与三个基础 Agent | LLM 助手、预测报告、特征建议 |
-+| 4.7 | DeepSeek 客户端、同步/流式、重试/限流/脱敏/审计、模板与基础 Agent、Token 和人民币费用估算 | LLM 助手、预测报告、特征建议 |
- | 4.8 | 先划分再拟合的流水线、模型训练与加载、完整产物保存、统一推理 | 模型训练、单笔预测 |
- | 5.1—5.3 | Streamlit 初始化、分页面结构、首页导航与模型状态 | 首页 |
- | 5.4 | 七个原有功能页面逐一完善 | 左侧七个基础功能入口 |
- | 5.5 | 复用侧栏、运行上下文、表单、图表和解释组件 | 各功能页 |
- | 5.6 | 蓝白主题、卡片、响应式排版、中文字体配置 | 全站 |
--| 7.2 | 教学审批规则检查 Agent，支持本地规则和真实 LLM 解释 | 单笔预测 → 教学规则检查 |
-+| 7.2 | 完整 Prompt、Agent、agents.compliance 注册、Web 入口；三条课程政策规则和真实 LLM 四字段 JSON 检查 | 单笔预测 → 完成风险评估 → 7.2 政策合规检查 |
- | 7.5 | 稳定哈希分流、可调比例、同样本离线指标对比 | A/B 模型测试 |
- | 7.7 | 所有本次功能及同学现有扩展接入 Web；包括 KNN、LightGBM、KS/多目标调参和漂移监控 | 特征工程、训练、监控等页面 |
- | 7.8 | 条件调整前后概率、月供、风险等级及 SHAP 贡献变化；准备免费部署 | 风险情景对比、免费部署说明 |
- 
- 第 7.7 条按“已实现功能都可在 Web 展示”完成，不把尚未选择的其他扩展编号自动当作新增任务。
- 
--公开模式有意关闭训练、数据上传和配置写入；这些能力在本地开发模式使用。真实 LLM 功能等待本地配置密钥后进行服务联调，当前使用模拟传输测试验证接口行为。
-+公开模式关闭训练、数据上传和配置写入；这些能力在本地开发模式使用。真实 LLM 已联调通过，自动化测试使用模拟传输以避免额外 API 消费。公开模式不调用 API、不读取本机计费账本。
-diff --git a/docs/答辩讲解.md b/docs/答辩讲解.md
-index a7dc4d7..15c3684 100644
---- a/docs/答辩讲解.md
-+++ b/docs/答辩讲解.md
-@@ -24,6 +24,8 @@
- 
- 先用原始单位算这些比值，再标准化，避免拿标准化后的数值解释真实业务比例。
- 
-+本轮增加了十一项通用业务候选，先在验证集比较，默认只保留等级和稳定就业两个新增标记。配合浅树、正则化和小型 MLP 后，四个模型的固定测试集 AUC 均提高；不是所有候选一起堆进去，也没有改标签或生成概率。树模型中简单放大某列数值通常不会提高重要性，页面展示的是训练学到的分裂收益。
+-用户已明确同意本轮上传；提交前核对远端 main、扫描实际暂存内容。此文档记录备注，实际提交号以 Git 历史为准。公网展示尚未部署。
++标题：
 +
- ## SHAP 怎么讲
- 
- SHAP 把模型原始输出分解为基线和各特征贡献。正值推动输出上升，负值推动输出下降。全局图看整体哪些因素重要，瀑布图和力图解释单笔样本。
-@@ -32,10 +34,12 @@ SHAP 把模型原始输出分解为基线和各特征贡献。正值推动输出
- 
- ## LLM 怎么讲
- 
--ReportAgent 写报告，FeatureAgent 提建议，CaseAgent 分析错误案例，新增 ComplianceAgent 解释教学规则检查结果。基本流程是整理上下文 → Jinja2 渲染模板 → 调用 DeepSeek → 解析返回内容。
-+ReportAgent 写报告，FeatureAgent 提建议，CaseAgent 分析错误案例，ComplianceAgent 按课程政策和附加规则逐条检查，返回并校验四字段 JSON。基本流程是整理上下文 → Jinja2 渲染模板 → 调用 DeepSeek → 解析返回内容。
- 
- 没有密钥也能展示本地示例，但页面明确标注。LLM 失败不影响模型预测。特征建议只允许几种固定运算，不能执行模型生成的任意 Python。
- 
-+计费统一放在客户端：读取服务端 usage，区分缓存输入和输出，按 API 实际响应模型对应单价计算人民币估算。流式需要 include_usage；用量不完整则待核实，不当作免费。账本只保存数字与模型、费率、时间，不保存问题、回答和密钥；估算不是账户实际扣费。
++    feat: 衔接真实数据与三模型融合并完善界面和项目分工
 +
- ## A/B 怎么讲
- 
- 申请编号经过 SHA-256 得到稳定的分组位置，再与 A 组比例比较。同一编号、同一比例会固定进入同一组。两种模型在同一批测试样本上比较，防止数据不同造成误判。
-@@ -50,9 +54,10 @@ ReportAgent 写报告，FeatureAgent 提建议，CaseAgent 分析错误案例，
- 
- 1. 首页说明合成数据及四种模型。
- 2. 单笔预测提交表单，展示概率、瀑布图和力图。
--3. 查看示例报告与教学规则检查，说明真实 API 尚待配置。
-+3. 打开“7.2 政策合规检查”Tab，演示 LPR、年龄证明和贷款用途规则，说明三条规则是课程约定；真实 API 已配置，可按需要点击检查。
- 4. 情景对比把贷款金额改为另一数值，再计算一次。
- 5. A/B 页面改变分流比例，说明稳定分组。
- 6. 模型监控选择“模拟收入分布变化”，展示同学的检测结果。
-+7. LLM 助手底部查看最近一次、累计 Token 与人民币估算费用。
- 
- 合成数据的 AUC 不高是因为信号较弱。这里主要展示完整链路和分工衔接，真实数据训练后的指标需要另行验证。
++提交正文：
++
++- 衔接同学最新 d329cbfd4aa1acb58f401edc6427f55e34408c6a，保留数据适配、合并训练入口、本地全量数据来源和三模型权重配置。
++- 在个人 TrainingPipeline 中接入 XGBoost、LightGBM、MLP 的 0.4/0.4/0.2 融合；三模型齐全且启用融合时才构建，缺少任一模型时安全跳过。
++- 修复共同应用层的数据来源串扰、同名文件缓存未刷新和加载失败假成功；加载器增加文件名白名单、校验与副本保护，公开模式继续隔离本地数据。
++- 精简页面文案和侧栏，调整布局；更新 README 与简明分工说明，区分同学基础算法和个人实际接入职责。
++- 特征选择已核对训练集拟合、验证/测试集变换和保存后预测复用；继续使用同学基础选择器，不重复新增算法。
++- 完整测试 138 项通过，其中包括 15 项数据来源回归和 7 项三模型回归；本地及公开模式各 11 页加载通过，浏览器全量数据加载成功。
++- 实际校验 train_merged.csv 为 1,054,190×47，train.csv 为 800,000×47；读取与缓存正常，原始文件 SHA256 前后一致。未进行全量训练或生成新的真实模型指标，旧演示指标仍来自合成数据。
++- 保留同学 27 个受保护核心文件。本轮未调用真实 LLM API；排除 .env、密钥、原始数据、私有账本、日志、虚拟环境和个人训练产物。
++
++用户已批准直接上传原仓库 `main`，不新建分支。提交前继续核对远端并检查实际暂存内容；最终提交号和上传状态以实际 Git 结果为准，此处不预填。公网展示尚未部署。
 diff --git a/docs/验收结果.md b/docs/验收结果.md
-index 2d87c24..e78d6e3 100644
+index e78d6e3..8499ff7 100644
 --- a/docs/验收结果.md
 +++ b/docs/验收结果.md
-@@ -1,20 +1,24 @@
--# 上传前验收结果
-+# 2026-10-18 本地完善验收结果
- 
--日期：2026-10-17（北京时间）
-+日期：2026-10-18（北京时间）
- 
- - 源码：D:\credit_risk_system3
- - 预览：http://127.0.0.1:8503
- - Python：3.12.14，独立 .venv 环境。
--- 核心与衔接测试：44 passed（原 18 项 + 新增 26 项）。
-+- 核心与衔接测试：114 passed（同学原 18 项保持原样）。
- - 页面加载：本地模式 11/11，公开展示模式 11/11。
- - 交互检查：12/12，包括预测、结果保留、规则建议切换、助手、情景、KNN、特征建议、监控、A/B 和训练后切换最新模型。
--- 同学核心文件：25 个与实际下载基线一致。
--- 原有基础文件：23 个发生修改，详情见修改与衔接说明。
--- Git：使用原仓库 main，不新建分支；以 82b8c132702c61cb571019418f6ccf1fa5e59d91 为同学代码基线。用户已授权检查通过后提交上传。
--- 密钥：.env 已由用户填写并被 Git 忽略；实际提交内容还会由 scripts/check_staged.py 扫描密钥原值、常见密钥格式和私有路径。
--- 真实 DeepSeek：同步、流式、风险报告、特征建议 JSON、规则检查 JSON 均已连接验证成功。验证只使用合成演示数据，不记录密钥和响应原文。
-+- 同学文件：原有 25 个核心及新增 2 个数据适配文件均与基线一致。
-+- 原有文件改动清单：按最新 0a63f13 基线逐项列出，详情见修改与衔接说明。
-+- Git：使用原仓库 main，不新建分支；已衔接同学最新 0a63f13337147d198f9a3cdbc069d11b200f1561，用户已授权上传。本文件记录提交前校验，最终提交号以 Git 历史为准。
-+- 密钥：.env 继续被 Git 忽略，本次审阅文件检查密钥原值与常见密钥格式，之后实际上传仍需检查暂存区。
-+- 真实 DeepSeek：本轮同步、流式和新的政策检查四字段 JSON 均已成功；三次调用都有真实 Token、实际响应模型和人民币估算记录。不记录密钥或响应原文。
-+- 固定数据：sample.json、sample.csv 和生成脚本 SHA-256 不变，标签不变，保留 3500/500/1000 划分；只按验证集选择方案。
-+- AUC：XGBoost 0.6071、LightGBM 0.5868、MLP 0.6181、融合 0.6184，详细取舍见本次完善说明.md。
- - 公网：尚未发布；免费部署文件与说明已准备，公开模式默认关闭真实 API。
- 
- 原有模块及依赖会输出弃用警告和日期推断警告，当前未导致测试或功能失败。没有通过修改同学代码或删改原测试来隐藏失败。
- 
- 日志在 logs，页面与交互结果 JSON 在 .local，均被 Git 忽略。普通自动化交互检查使用模拟客户端，避免每次回归测试重复调用真实 API。
+@@ -1,24 +1,35 @@
+-# 2026-10-18 本地完善验收结果
+-
+-日期：2026-10-18（北京时间）
+-
+-- 源码：D:\credit_risk_system3
+-- 预览：http://127.0.0.1:8503
+-- Python：3.12.14，独立 .venv 环境。
+-- 核心与衔接测试：114 passed（同学原 18 项保持原样）。
+-- 页面加载：本地模式 11/11，公开展示模式 11/11。
+-- 交互检查：12/12，包括预测、结果保留、规则建议切换、助手、情景、KNN、特征建议、监控、A/B 和训练后切换最新模型。
+-- 同学文件：原有 25 个核心及新增 2 个数据适配文件均与基线一致。
+-- 原有文件改动清单：按最新 0a63f13 基线逐项列出，详情见修改与衔接说明。
+-- Git：使用原仓库 main，不新建分支；已衔接同学最新 0a63f13337147d198f9a3cdbc069d11b200f1561，用户已授权上传。本文件记录提交前校验，最终提交号以 Git 历史为准。
+-- 密钥：.env 继续被 Git 忽略，本次审阅文件检查密钥原值与常见密钥格式，之后实际上传仍需检查暂存区。
+-- 真实 DeepSeek：本轮同步、流式和新的政策检查四字段 JSON 均已成功；三次调用都有真实 Token、实际响应模型和人民币估算记录。不记录密钥或响应原文。
+-- 固定数据：sample.json、sample.csv 和生成脚本 SHA-256 不变，标签不变，保留 3500/500/1000 划分；只按验证集选择方案。
+-- AUC：XGBoost 0.6071、LightGBM 0.5868、MLP 0.6181、融合 0.6184，详细取舍见本次完善说明.md。
+-- 公网：尚未发布；免费部署文件与说明已准备，公开模式默认关闭真实 API。
+-
+-原有模块及依赖会输出弃用警告和日期推断警告，当前未导致测试或功能失败。没有通过修改同学代码或删改原测试来隐藏失败。
+-
+-日志在 logs，页面与交互结果 JSON 在 .local，均被 Git 忽略。普通自动化交互检查使用模拟客户端，避免每次回归测试重复调用真实 API。
+-
+-80 万真实数据尚未到位、尚未实测。KNN 只增加训练集参考上限和查询分批，训练中间表仍在内存，真实数据需要重新做指标和资源评估。
++# 2026-10-18 本轮验收结果
 +
-+80 万真实数据尚未到位、尚未实测。KNN 只增加训练集参考上限和查询分批，训练中间表仍在内存，真实数据需要重新做指标和资源评估。
++项目目录：`D:\credit_risk_system3`。本轮以同学提交 `d329cbfd4aa1acb58f401edc6427f55e34408c6a` 为衔接基线。用户已批准直接提交到原仓库 `main`，不新建分支；本文件记录上传前验收，不代表已经上传成功。
++
++## 功能与验证
++
++| 内容 | 本轮结果 |
++|---|---|
++| 完整测试 | 138 项全部通过，临时文件使用项目内全新的英文路径。 |
++| 数据来源回归 | 15 项通过，使用临时目录中的自造夹具，覆盖来源切换、恢复演示、缓存刷新、返回副本、失败保留原选择、公开模式隔离和文件白名单。 |
++| 三模型融合回归 | 7 项通过，使用常量假模型验证实际融合输出，以及缺少模型或关闭融合时安全跳过。 |
++| 页面加载 | 本地模式 11/11 页、公开展示模式 11/11 页通过。 |
++| 浏览器操作 | 本地全量数据来源实际加载成功。 |
++| 特征选择 | 已核对配置启用及方差→相关性→XGBoost 重要性筛选，训练集拟合、验证和测试集变换，选择器持久化并供预测复用。入口在模型训练页的“开始训练”。 |
++| 三模型方案 | 个人编排已接入 XGBoost、LightGBM、MLP；三者齐全且融合开启时使用同学配置的 0.4/0.4/0.2 权重，缺少任一模型不构建融合。 |
++| 界面与分工 | 完成页面文案和布局调整；README 与分工说明明确两人的基础实现及实际接入职责。 |
++
++## 本地数据实测
++
++| 文件 | 行数 | 列数 | 验证结果 |
++|---|---:|---:|---|
++| `train_merged.csv` | 1,054,190 | 47 | 加载器读取、训练必需字段及二分类标签校验通过，缓存正常。 |
++| `train.csv` | 800,000 | 47 | 加载器读取、训练必需字段及二分类标签校验通过，缓存正常。 |
++
++两份原始文件在验证前后的 SHA256 一致，未修改数据或标签。本轮验证范围是加载、缓存、字段校验和页面切换，没有开展百万行全量训练，没有生成新的真实模型指标。现有演示模型及历史 AUC 仍来自合成数据，不能当作真实数据效果。
++
++## 衔接与上传边界
++
++- 同学的 27 个受保护核心文件保持原样。
++- 两个共同应用文件 `app/components/runtime.py` 与数据探索页保留同学新增的本地全量入口，仅修复缓存、来源切换状态和加载失败保护。
++- 特征选择基础类、融合类和三模型权重由同学提供；个人负责训练、推理与 Web 的实际接入及回归验证。
++- 本轮未调用真实 LLM API。`.env`、API 密钥、原始数据、私有账本、日志、虚拟环境和个人训练产物不纳入提交；上传前须以实际暂存区安全检查结果为准。
++- 公网展示尚未发布。本轮 GitHub 上传与公开部署分别处理。
++
++基础模块及依赖的警告未导致上述回归失败。本轮没有通过修改同学核心代码或基础测试来隐藏失败。
 diff --git a/scripts/check_changes.py b/scripts/check_changes.py
-index c7afd53..b34706a 100644
+index b34706a..35a297e 100644
 --- a/scripts/check_changes.py
 +++ b/scripts/check_changes.py
-@@ -6,7 +6,9 @@ from pathlib import Path
- 
+@@ -7,8 +7,8 @@ from pathlib import Path
  ROOT = Path(__file__).resolve().parents[1]
  USER_BASE = "60318f595a823e7fbb381960464eaad2e7016b5c"
--CHECKOUT_BASE = "82b8c132702c61cb571019418f6ccf1fa5e59d91"
-+ORIGINAL_TEAM_BASE = "82b8c132702c61cb571019418f6ccf1fa5e59d91"
-+PREVIOUS_PERSONAL_COMMIT = "ca04a6c0c2b968013d9fd5b9a381b5137ae3bc36"
-+CHECKOUT_BASE = "0a63f13337147d198f9a3cdbc069d11b200f1561"
- 
- 
+ ORIGINAL_TEAM_BASE = "82b8c132702c61cb571019418f6ccf1fa5e59d91"
+-PREVIOUS_PERSONAL_COMMIT = "ca04a6c0c2b968013d9fd5b9a381b5137ae3bc36"
+-CHECKOUT_BASE = "0a63f13337147d198f9a3cdbc069d11b200f1561"
++PREVIOUS_PERSONAL_COMMIT = "cb93436f6ec081b6d5d4acf4200d364c2c06f22a"
++CHECKOUT_BASE = "d329cbfd4aa1acb58f401edc6427f55e34408c6a"
+
+
  def git(*args):
-@@ -40,13 +42,19 @@ def build_report():
-     env_ignored = subprocess.run(["git", "check-ignore", ".env", ".local/settings.yaml",
+@@ -43,9 +43,8 @@ def build_report():
                                   ".streamlit/secrets.toml"], cwd=ROOT, capture_output=True, text=True).stdout
      result = {"user_base": USER_BASE, "checkout_base": CHECKOUT_BASE,
--              "teammate_updates_after_user_base": git("diff", "--name-only", f"{USER_BASE}..{CHECKOUT_BASE}").decode().splitlines(),
-+              "original_team_base": ORIGINAL_TEAM_BASE,
-+              "teammate_updates_after_user_base": sorted(set(
-+                  git("diff", "--name-only", f"{USER_BASE}..{ORIGINAL_TEAM_BASE}").decode().splitlines() +
-+                  git("diff", "--name-only", f"{PREVIOUS_PERSONAL_COMMIT}..{CHECKOUT_BASE}").decode().splitlines())),
+               "original_team_base": ORIGINAL_TEAM_BASE,
+-              "teammate_updates_after_user_base": sorted(set(
+-                  git("diff", "--name-only", f"{USER_BASE}..{ORIGINAL_TEAM_BASE}").decode().splitlines() +
+-                  git("diff", "--name-only", f"{PREVIOUS_PERSONAL_COMMIT}..{CHECKOUT_BASE}").decode().splitlines())),
++              "teammate_updates_since_previous_upload":
++                  git("diff", "--name-only", f"{PREVIOUS_PERSONAL_COMMIT}..{CHECKOUT_BASE}").decode().splitlines(),
                "modified_existing_files": changed, "new_files": added,
                "protected_unchanged": unchanged, "ignored_secret_paths": env_ignored.splitlines()}
      folder = ROOT / "docs"
-     folder.mkdir(exist_ok=True)
-     (folder / "change_manifest.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
--    patch = git("diff", "--no-ext-diff", CHECKOUT_BASE, "--", *changed) if changed else b""
-+    generated = {"docs/existing_files.diff", "docs/change_manifest.json", "docs/security_check.json",
-+                 "docs/修改与衔接说明.md", "docs/revision_check.json"}
-+    patch_paths = [path for path in changed if path not in generated]
-+    patch = git("diff", "--no-ext-diff", CHECKOUT_BASE, "--", *patch_paths) if patch_paths else b""
+@@ -55,6 +54,7 @@ def build_report():
+                  "docs/修改与衔接说明.md", "docs/revision_check.json"}
+     patch_paths = [path for path in changed if path not in generated]
+     patch = git("diff", "--no-ext-diff", CHECKOUT_BASE, "--", *patch_paths) if patch_paths else b""
++    patch = b"\n".join(b"" if line == b" " else line for line in patch.split(b"\n"))
      (folder / "existing_files.diff").write_bytes(patch)
      print(json.dumps({"modified": len(changed), "new": len(added), "protected_unchanged": len(unchanged)}))
      return result
-diff --git a/scripts/prepare_demo.py b/scripts/prepare_demo.py
-index b66f348..7dd8fb4 100644
---- a/scripts/prepare_demo.py
-+++ b/scripts/prepare_demo.py
-@@ -2,10 +2,12 @@ import shutil
- import sys
- from pathlib import Path
- 
-+import joblib
-+import pandas as pd
-+
- ROOT = Path(__file__).resolve().parents[1]
- sys.path.insert(0, str(ROOT))
- 
--from scripts.generate_sample_data import generate_sample_data
- from src.pipeline.inference import InferenceService
- from src.pipeline.orchestrator import ArtifactManager, TrainingPipeline
- from src.utils.config_loader import ConfigLoader
-@@ -14,21 +16,26 @@ from src.utils.config_loader import ConfigLoader
- def main():
-     configs = ConfigLoader(str(ROOT / "configs"))
-     cfg = configs.get("project")
--    data = generate_sample_data(cfg.demo.samples, cfg.demo.seed)
--    path = ROOT / "data/sample"
--    path.mkdir(parents=True, exist_ok=True)
--    data.to_csv(path / "sample.csv", index=False)
--    pipeline = TrainingPipeline(configs)
--    result = pipeline.run(data=data, use_sample=True, quick=True, skip_tuning=False)
-     assets = ROOT / "demo_assets"
-+    sample = assets / "sample.json"
-+    if not sample.exists():
-+        raise FileNotFoundError("缺少固定演示数据 demo_assets/sample.json，请先恢复原数据文件")
-+    data = pd.read_json(sample, orient="table")
-+    previous = joblib.load(assets / "bundle.joblib") if (assets / "bundle.joblib").exists() else None
-+    pipeline = TrainingPipeline(configs)
-+    result = pipeline.run(data=data, use_sample=True, quick=True, skip_tuning=True)
-     assets.mkdir(exist_ok=True)
-     bundle = ArtifactManager.load_latest(ROOT / "data/models")
-     if bundle["meta"]["source"] != "合成演示数据":
-         raise ValueError("仅允许将合成数据训练产物放入公开演示目录")
-     service = InferenceService(bundle)
-     service.predict_proba(bundle["raw_test"].head(5))
-+    if previous and previous["meta"]["fit_train_indices"] == bundle["meta"]["fit_train_indices"]:
-+        bundle["previous_eval_results"] = previous.get("previous_eval_results", previous["eval_results"])
-+        bundle.pop("dir", None)
-+        bundle.pop("ensemble_model", None)
-+        joblib.dump(bundle, ROOT / "data/models/latest/bundle.joblib", compress=3)
-     shutil.copy2(ROOT / "data/models/latest/bundle.joblib", assets / "bundle.joblib")
--    data.to_json(assets / "sample.json", orient="table", force_ascii=False, index=False)
-     print(result)
- 
- 
+diff --git a/scripts/check_staged.py b/scripts/check_staged.py
+index ccceb2f..a65f2f6 100644
+--- a/scripts/check_staged.py
++++ b/scripts/check_staged.py
+@@ -37,8 +37,10 @@ def main():
+         count += 1
+         parts = Path(path).parts
+         name = Path(path).name
++        data_readme = path == "data/README.md" and data == git_bytes("show", f"{CHECKOUT_BASE}:data/README.md")
+         if (name.startswith(".env") and name != ".env.example") or name == "secrets.toml" or \
+-                any(part in {".venv", ".local", "logs", ".git"} for part in parts) or path.startswith("data/"):
++                any(part in {".venv", ".local", "logs", ".git"} for part in parts) or \
++                (path.startswith("data/") and not data_readme):
+             sensitive_paths.append(path)
+         if any(secret in data for secret in key_forms) or any(re.search(pattern, data) for pattern in patterns):
+             matches.append(path)
 diff --git a/scripts/write_review.py b/scripts/write_review.py
-index 33a6941..65cae80 100644
+index 65cae80..a26a318 100644
 --- a/scripts/write_review.py
 +++ b/scripts/write_review.py
-@@ -4,7 +4,7 @@ import re
- import subprocess
- from pathlib import Path
- 
--from check_changes import CHECKOUT_BASE, ROOT, USER_BASE, build_report, git
-+from check_changes import CHECKOUT_BASE, ORIGINAL_TEAM_BASE, ROOT, USER_BASE, build_report, git
- 
- 
- def symbols(source):
-@@ -28,15 +28,15 @@ def main():
+@@ -26,9 +26,11 @@ def symbols(source):
+ def main():
+     report = build_report()
      reasons = {
++        "README.md": "更新两人分工、真实数据接入状态、三模型融合与特征选择说明。",
          ".gitignore": "增加环境文件、私有设置、日志和产物排除，单独允许合成演示模型。",
          "app/assets/style.css": "统一主题、导航、指标卡片和窄屏布局。",
--        "app/components/sidebar.py": "统一导航与模型来源，展示当前数据和开发/公开模式。",
-+        "app/components/sidebar.py": "删除用户指定的课程说明文字；品牌样式、导航和模型来源保持原样。",
+-        "app/components/sidebar.py": "删除用户指定的课程说明文字；品牌样式、导航和模型来源保持原样。",
++        "app/components/sidebar.py": "品牌名称与英文小字分组，删除标语；保留导航与模型来源逻辑。",
++        "app/components/runtime.py": "真实文件缓存绑定修改时间并返回副本，加载前校验，失败明确提示。",
          "app/streamlit_app.py": "首页状态、模型指标、流程介绍与功能入口。",
--        "configs/llm_config.yaml": "注册教学规则检查模板；API 仍通过环境变量读取。",
-+        "configs/llm_config.yaml": "注册政策检查模板与 agents.compliance，实际使用启停、温度和 token 上限；API 仍通过环境变量读取。",
+         "configs/llm_config.yaml": "注册政策检查模板与 agents.compliance，实际使用启停、温度和 token 上限；API 仍通过环境变量读取。",
          "configs/prompts/feature_suggestion.j2": "改成固定操作的结构化建议，不要求返回可执行代码。",
-         "configs/prompts/risk_report.j2": "使用实际模型名称与风险区间，移除固定融合模型文案。",
-         "src/llm/agents/case_agent.py": "增加可选分类阈值，让案例筛选和分析与评估阈值一致。",
-         "src/llm/agents/feature_agent.py": "只发送字段统计，解析结构化建议，预览固定特征操作。",
+@@ -38,19 +40,26 @@ def main():
          "src/llm/agents/report_agent.py": "支持实际模型名称、阈值和可选 SHAP。",
--        "src/llm/client.py": "密钥按 .env 读取，真实请求前脱敏，提供可控重试、限流和流式错误处理。",
-+        "src/llm/client.py": "密钥按 .env 读取，真实请求前脱敏；同步/流式记录真实 Token，按响应模型估算费用，计费故障不丢弃已生成回答。",
+         "src/llm/client.py": "密钥按 .env 读取，真实请求前脱敏；同步/流式记录真实 Token，按响应模型估算费用，计费故障不丢弃已生成回答。",
          "src/llm/prompts.py": "模板目录按项目定位，中文 JSON 渲染与模板缓存刷新。",
-         "src/pipeline/orchestrator.py": "重整训练步骤、复用同学模型，统一训练/推理状态并保存完整产物。",
+-        "src/pipeline/orchestrator.py": "重整训练步骤、复用同学模型，统一训练/推理状态并保存完整产物。",
++        "src/pipeline/orchestrator.py": "仅在融合条件和模型列表两处加入 LightGBM，衔接同学三模型权重配置。",
++        "scripts/check_changes.py": "保护基线更新到 d329cbf，记录上次个人上传后的同学改动。",
++        "scripts/check_staged.py": "只允许与同学基线一致的数据目录说明文件，继续阻止真实数据及私有文件上传。",
++        "scripts/write_review.py": "更新本轮改动说明与三模型衔接记录，补充监控页面的说明映射。",
++        "docs/拟提交说明.md": "记录用户已批准的提交范围、验证结果及隐私排除。",
++        "docs/验收结果.md": "更新真实数据加载验证和针对性测试，说明未开展全量训练。",
++        "tests/test_compliance.py": "同步政策合规检查标签名称的既有断言。",
          "src/utils/config_loader.py": "支持普通字典、属性访问及安全环境变量替换，明确读取项目 .env。",
-@@ -46,21 +46,22 @@ def main():
+         "src/utils/logger.py": "集中日志处理，避免重复 handler，日志中的密钥自动隐藏。",
+         "src/utils/metrics.py": "统一概率格式，处理单类/非法输入，提供指标、阈值和曲线数据。",
+     }
      page_reasons = {
-         "1_": "选择/上传数据、字段校验、质量和分布展示。",
-         "2_": "KNN 预览、原始单位衍生特征、建议预览与本地规则保存。",
--        "3_": "模型选择、AUC/KS/多目标调参、进度、曲线、结果与最新产物切换。",
--        "4_": "统一预测、持久结果、SHAP 力图/瀑布图、报告和规则检查。",
-+        "3_": "模型选择、稳健训练方案与前后对照、AUC/KS/多目标调参、曲线、验证指标与特征重要性。",
-+        "4_": "统一预测、SHAP、报告；7.2 政策检查显著入口、规则输入和真实 DeepSeek JSON 结果。",
+-        "1_": "选择/上传数据、字段校验、质量和分布展示。",
+-        "2_": "KNN 预览、原始单位衍生特征、建议预览与本地规则保存。",
++        "1_": "切换数据来源时清理旧选择，加载与校验成功后才更新状态，失败保留原来源。",
++        "2_": "精简 KNN 填充说明，去掉人员归属描述。",
+         "3_": "模型选择、稳健训练方案与前后对照、AUC/KS/多目标调参、曲线、验证指标与特征重要性。",
+-        "4_": "统一预测、SHAP、报告；7.2 政策检查显著入口、规则输入和真实 DeepSeek JSON 结果。",
++        "4_": "合规标签改为政策合规检查，移除页面上的章节编号。",
          "5_": "全局 SHAP、分布、依赖及单笔解释。",
--        "6_": "上下文对话、报告入口、特征建议入口和异常案例诊断。",
-+        "6_": "上下文对话、报告/建议/案例；真实 Token、单次及累计人民币估算、历史明细，公开模式不读私有账本。",
-         "7_": "只读查看同学基础配置，本地保存扩展配置，只显示 API 配置状态。"
+-        "6_": "上下文对话、报告/建议/案例；真实 Token、单次及累计人民币估算、历史明细，公开模式不读私有账本。",
+-        "7_": "只读查看同学基础配置，本地保存扩展配置，只显示 API 配置状态。"
++        "6_": "将聊天输入框放入普通布局，避免页面自动下滚裁掉顶部标识，对话和计费逻辑不变。",
++        "7_": "只读查看同学基础配置，本地保存扩展配置，只显示 API 配置状态。",
++        "8_": "精简模型监控页面说明，去掉人员归属描述。"
      }
      for path in report["modified_existing_files"]:
          if path.startswith("app/pages/"):
-             reasons[path] = next(value for key, value in page_reasons.items() if Path(path).name.startswith(key))
-     lines = ["# 修改与衔接说明", "",
--             "项目目录：D:\\credit_risk_system3。用户已同意检查通过后提交到原仓库 main；公网展示尚未发布。",
-+             "项目目录：D:\\credit_risk_system3。用户已同意本次检查通过后上传原仓库 main；公网展示尚未发布。",
-              "", "## 基线区别", "",
+@@ -61,7 +70,7 @@ def main():
               f"- 用户提供的提交：{USER_BASE}",
-+             f"- 原有同学核心代码基线：{ORIGINAL_TEAM_BASE}",
+              f"- 原有同学核心代码基线：{ORIGINAL_TEAM_BASE}",
               f"- 实际下载并保留的同学最新提交：{CHECKOUT_BASE}",
--             "- 同学在两次提交之间新增漂移监控及相关测试，本次保留并接入 Web，未把这些新增代码算作我的实现。",
-+             "- 最新基线包含已上传的个人版本 ca04a6c 和同学新增的两个 Lending Club 数据适配文件；同学原有核心和新增文件都保持原样。",
+-             "- 最新基线包含已上传的个人版本 ca04a6c 和同学新增的两个 Lending Club 数据适配文件；同学原有核心和新增文件都保持原样。",
++             "- 最新基线包含已上传的个人版本及同学的适配器、真实数据入口和三模型权重。27 个受保护核心文件保持原样；共用应用文件仅进行下表列明的小范围修复。",
               "", "## 改动过的原有文件", "",
               "以下原文件主要是你负责章节的基础实现。这里如实列出修改，不能理解为所有原文件一行未动。",
               "", "| 原有文件 | 修改位置（当前行号） | 原因 |",
-@@ -101,7 +102,7 @@ def main():
-               "- 原有文件完整差异在 docs/existing_files.diff。",
+@@ -91,7 +100,8 @@ def main():
+               "- 特征选择：直接调用原 FeatureSelector，只改变调用时机，确保只拟合训练集。",
+               "- SHAP：继续调用原 SHAPAnalyzer，页面负责画力图并区分原始输出与模型概率。",
+               "- 漂移监控：页面直接调用同学 DriftDetector，不重写检测算法。",
+-              "- 融合：沿用同学 XGBoost+MLP 的配置与模型类，在验证集处理需要拟合的融合步骤；LightGBM 独立训练并参与 A/B。",
++              "- 融合：沿用同学模型类与 0.4/0.4/0.2 权重配置，三模型齐全且开启融合时加入 XGBoost、LightGBM 和 MLP；缺模型时跳过融合。",
++              "- 真实数据：保留同学全量文件入口，补充来源切换、缓存刷新、返回副本和加载失败保护；原始 CSV 不修改、不上传。",
+               "- 本地设置保存到 .local/settings.yaml，不覆盖同学的 data、feature、model 配置。",
+               "", "## 接口与运行习惯", "",
+               "- 原 TrainingPipeline.run 参数保留，新增 model_names、data、quick；原命令行 --use-sample、--skip-mlp、--tune 保留。",
+@@ -103,7 +113,7 @@ def main():
                "- 结构化清单在 docs/change_manifest.json。",
                "- 重新执行 python scripts/check_changes.py 会检查受保护文件及忽略规则。",
--              "- 用户已授权本次上传。上传前检查远端 main，并用 scripts/check_staged.py 核对实际提交内容。",
-+              "- 用户已同意本次上传；提交前检查远端 main，并用 scripts/check_staged.py 核对实际提交内容。",
-               "- 本地 DeepSeek 已通过同步、流式、风险报告、特征建议和规则检查的真实连接验证；密钥只保留在被忽略的 .env。", ""]
+               "- 用户已同意本次上传；提交前检查远端 main，并用 scripts/check_staged.py 核对实际提交内容。",
+-              "- 本地 DeepSeek 已通过同步、流式、风险报告、特征建议和规则检查的真实连接验证；密钥只保留在被忽略的 .env。", ""]
++              "- 本地 DeepSeek 此前已通过真实连接验证；本轮未发起真实 API 请求，密钥仍只保留在被忽略的 .env。", ""]
      (ROOT/"docs/修改与衔接说明.md").write_text("\n".join(lines), encoding="utf-8")
      candidates = set(git("ls-files").decode("utf-8").splitlines()+report["new_files"])
-diff --git a/src/features/project_builder.py b/src/features/project_builder.py
-index 1862c70..e389800 100644
---- a/src/features/project_builder.py
-+++ b/src/features/project_builder.py
-@@ -31,6 +31,23 @@ class ProjectFeatureBuilder:
-             return df["installment"] / (df["annualIncome"] / 12).replace(0, np.nan)
-         if operation == "fico_mean":
-             return (df["ficoRangeLow"] + df["ficoRangeHigh"]) / 2
-+        if operation == "log1p":
-+            return np.log1p(pd.to_numeric(df[rule["column"]], errors="coerce").clip(lower=0))
-+        if operation == "category_flag":
-+            values = df[rule["column"]]
-+            flag = values.astype(str).isin([str(v) for v in rule["values"]]).astype(float)
-+            return flag.where(values.notna())
-+        if operation == "annual_interest_ratio":
-+            return df["loanAmnt"] * df["interestRate"] / 100 / df["annualIncome"].replace(0, np.nan)
-+        if operation == "credit_history":
-+            start = pd.to_datetime(df["earliesCreditLine"], format="mixed", errors="coerce")
-+            end = pd.to_datetime(df["issueDate"], format="mixed", errors="coerce")
-+            return ((end-start).dt.days / 365.25).clip(lower=0)
-+        if operation == "debt_surplus":
-+            return df["annualIncome"] / 12 * (1-df["dti"] / 100) - df["installment"]
-+        if operation == "ratio_plus_one":
-+            return pd.to_numeric(df[rule["numerator"]], errors="coerce") / (
-+                pd.to_numeric(df[rule["denominator"]], errors="coerce") + 1).replace(0, np.nan)
-         if operation == "bucket":
-             return pd.cut(df[rule["column"]], bins=rule["bins"], labels=False, include_lowest=True).astype(float)
-         if operation in ("sum", "product", "difference"):
-diff --git a/src/llm/agents/compliance_agent.py b/src/llm/agents/compliance_agent.py
-index fa05a55..943c270 100644
---- a/src/llm/agents/compliance_agent.py
-+++ b/src/llm/agents/compliance_agent.py
-@@ -1,39 +1,150 @@
-+import json
- import math
-+import os
-+import re
- 
--from src.llm.json_utils import parse_json_object
- from src.pipeline.inference import decision_for
- 
- 
-+def _get(config, key, default=None):
-+    return config.get(key, default) if isinstance(config, dict) else getattr(config, key, default)
-+
-+
- class ComplianceAgent:
--    def __init__(self, client, prompt_manager, config):
-+    DEFAULT_RULES = [
-+        "课程规则：贷款年利率不得超过输入 LPR 的 4 倍。",
-+        "课程规则：60 岁以上申请人需要额外的还款能力证明。",
-+        "课程规则：贷款用途不得用于房地产投资。",
-+    ]
-+
-+    def __init__(self, client, prompt_manager, config, agent_config=None):
-         self.client = client
-         self.prompts = prompt_manager
-         self.config = config
-+        llm_config = _get(client, "config")
-+        agents = _get(llm_config, "agents", {})
-+        self.agent_config = agent_config if agent_config is not None else _get(agents, "compliance", config)
-+
-+    @property
-+    def enabled(self):
-+        return _get(self.agent_config, "enabled", True) is True
-+
-+    def rule_list(self, extra_rules=None):
-+        if extra_rules is not None and (not isinstance(extra_rules, list)
-+                                        or any(not isinstance(rule, str) or not rule.strip() for rule in extra_rules)):
-+            raise ValueError("附加规则必须是非空文本组成的列表")
-+        rules = list(_get(self.config, "rules", [])) + self.DEFAULT_RULES + (extra_rules or [])
-+        return list(dict.fromkeys(rules))
- 
-     def check(self, features, decision, interest_rate=None, rules=None, probability=None,
-               low=0.3, high=0.7, use_llm=False):
-+        if not self.enabled:
-+            raise ValueError("政策合规检查 Agent 已在 configs/llm_config.yaml 中关闭")
-+        if not isinstance(features, dict):
-+            raise ValueError("申请资料应为字段字典")
-+        if decision not in ("建议通过", "人工复核", "建议拒绝"):
-+            raise ValueError("审批决策应为建议通过、人工复核或建议拒绝")
-+        effective_rules = self.rule_list(rules)
-+        local_result = self._check_local(features, decision, interest_rate, probability, low, high)
-+        if rules:
-+            local_result["warnings"].append("附加自定义规则尚未由本地程序执行，请使用 DeepSeek 逐条检查或人工核对")
-+            local_result["recommendations"] = ["结合完整资料逐项人工复核，并核对附加自定义规则"]
-+        if not use_llm:
-+            return local_result
-+        if os.getenv("APP_ENV") == "public_demo" or os.getenv("CREDIT_RISK_PUBLIC_DEMO") == "1":
-+            raise ValueError("公开演示模式只执行本地规则，不调用 DeepSeek")
-+        if self.client is None or not _get(self.client, "configured", True):
-+            raise ValueError("DeepSeek 尚未配置，请在本地配置后使用真实检查")
-+        prompt = self.prompts.render("compliance_check", features=features, decision=decision,
-+                                     interest_rate=interest_rate if interest_rate is not None else features.get("interestRate"),
-+                                     rules=effective_rules, rule_result=local_result)
-+        response = self.client.chat(
-+            prompt, system_prompt=self.prompts.get_system_role("compliance_check"),
-+            temperature=_get(self.agent_config, "temperature", 0.1),
-+            max_tokens=_get(self.agent_config, "max_tokens", 2000),
-+            response_format={"type": "json_object"})
-+        analysis = self._validate_response(response)
-+        return {**analysis, "source": "DeepSeek 逐条规则检查", "notice": local_result["notice"],
-+                "local_result": local_result, "llm_analysis": analysis}
-+
-+    def _check_local(self, features, decision, interest_rate, probability, low, high):
-         violations, warnings = [], []
--        for field in self.config.required_fields:
-+        for field in _get(self.config, "required_fields", ["loanAmnt", "annualIncome", "term", "interestRate"]):
-             value = features.get(field)
-             if value is None or (isinstance(value, (float, int)) and not math.isfinite(value)):
-                 violations.append({"rule": "申请资料完整", "reason": f"缺少或无效字段 {field}"})
--        income, amount = features.get("annualIncome", 0), features.get("loanAmnt", 0)
--        if income <= 0 or amount <= 0:
--            violations.append({"rule": "输入合理", "reason": "收入与贷款金额应大于零"})
--        elif amount/income > self.config.max_loan_income_ratio:
-+        income = self._number(features.get("annualIncome"))
-+        amount = self._number(features.get("loanAmnt"))
-+        if income is None or amount is None or income <= 0 or amount <= 0:
-+            violations.append({"rule": "输入合理", "reason": "收入与贷款金额应为有效的正数"})
-+        elif amount / income > _get(self.config, "max_loan_income_ratio", 1.0):
-             warnings.append("贷款收入比超过项目阈值，建议人工复核")
--        if features.get("dti", 0) > self.config.max_dti:
-+        dti = self._number(features.get("dti"))
-+        if dti is not None and dti > _get(self.config, "max_dti", 40):
-             warnings.append("负债收入比超过项目阈值，建议人工复核")
-         if probability is not None and decision != decision_for(probability, low, high):
-             violations.append({"rule": "审批建议一致", "reason": "所选审批建议与模型风险区间不一致"})
--        result = {"is_compliant": not violations, "violations": violations, "warnings": warnings,
--                  "recommendations": ["结合实际资料进行人工复核"] if violations or warnings else ["资料符合当前教学规则"],
--                  "source": "本地教学规则检查", "notice": "规则为课程演示设置"}
--        if use_llm:
--            prompt = self.prompts.render("compliance_check", features=features, decision=decision,
--                                         interest_rate=interest_rate, rules=rules or self.config.rules,
--                                         rule_result=result)
--            response = self.client.chat(prompt, system_prompt=self.prompts.get_system_role("compliance_check"),
--                                        temperature=0.1)
--            result["llm_analysis"] = parse_json_object(response)
-+        rate = self._number(interest_rate if interest_rate is not None else features.get("interestRate"))
-+        lpr = self._number(features.get("lpr"))
-+        if rate is None or rate < 0:
-+            violations.append({"rule": "利率输入合理", "reason": "贷款年利率应为非负数"})
-+        elif lpr is None or lpr <= 0:
-+            warnings.append("未提供有效 LPR，未检查课程中的 4 倍 LPR 规则")
-+        elif rate > 4 * lpr:
-+            violations.append({"rule": self.DEFAULT_RULES[0], "reason": f"输入年利率 {rate:g}% 超过 4 倍输入 LPR（{4*lpr:g}%）"})
-+        age = self._number(features.get("age"))
-+        if age is None or not 18 <= age <= 120:
-+            warnings.append("未提供有效成年人年龄，未检查额外还款能力证明规则")
-+        elif age > 60 and features.get("repayment_proof") is not True:
-+            violations.append({"rule": self.DEFAULT_RULES[1], "reason": "申请人超过 60 岁且未确认提供额外还款能力证明"})
-+        purpose = features.get("loan_purpose")
-+        if not isinstance(purpose, str) or not purpose.strip():
-+            warnings.append("未提供贷款用途，未检查房地产投资用途规则")
-+        elif "房地产投资" in purpose:
-+            violations.append({"rule": self.DEFAULT_RULES[2], "reason": "填报贷款用途包含房地产投资"})
-+        return {"is_compliant": not violations, "violations": violations, "warnings": warnings,
-+                "recommendations": ["结合完整资料逐项人工复核"] if violations or warnings else ["当前资料符合已执行的课程规则"],
-+                "source": "本地教学规则检查", "notice": "按课程规则演示，不构成对实际法律、监管要求或审批有效性的认定"}
-+
-+    @staticmethod
-+    def _number(value):
-+        if isinstance(value, bool):
-+            return None
-+        try:
-+            number = float(value)
-+            return number if math.isfinite(number) else None
-+        except (ValueError, TypeError):
-+            return None
-+
-+    @staticmethod
-+    def _validate_response(text):
-+        error = "政策合规检查返回格式错误，请重新检查"
-+        if not isinstance(text, str):
-+            raise ValueError(error + "：结果不是 JSON 文本")
-+        cleaned = text.strip()
-+        if cleaned.startswith("```"):
-+            match = re.fullmatch(r"```(?:json)?\s*(\{[\s\S]*\})\s*```", cleaned)
-+            if not match:
-+                raise ValueError(error + "：JSON 代码块不完整")
-+            cleaned = match.group(1)
-+        try:
-+            result = json.loads(cleaned)
-+        except (json.JSONDecodeError, TypeError):
-+            raise ValueError(error + "：不是完整的 JSON 对象") from None
-+        fields = {"is_compliant", "violations", "warnings", "recommendations"}
-+        if not isinstance(result, dict) or set(result) != fields:
-+            raise ValueError(error + "：应包含规定的四个字段")
-+        if type(result["is_compliant"]) is not bool:
-+            raise ValueError(error + "：is_compliant 应为布尔值")
-+        if not isinstance(result["violations"], list):
-+            raise ValueError(error + "：violations 应为列表")
-+        for item in result["violations"]:
-+            if (not isinstance(item, dict) or set(item) != {"rule", "reason"}
-+                    or any(not isinstance(item[key], str) or not item[key].strip() for key in ("rule", "reason"))):
-+                raise ValueError(error + "：每条违规项应包含 rule 和 reason 文本")
-+        for key in ("warnings", "recommendations"):
-+            if not isinstance(result[key], list) or any(not isinstance(item, str) or not item.strip() for item in result[key]):
-+                raise ValueError(error + f"：{key} 应为文本列表")
-+        if result["is_compliant"] != (not result["violations"]):
-+            raise ValueError(error + "：通过状态与违规项不一致")
-         return result
-diff --git a/src/llm/client.py b/src/llm/client.py
-index 91fdc90..d91c1cb 100644
---- a/src/llm/client.py
-+++ b/src/llm/client.py
-@@ -9,6 +9,7 @@ from pathlib import Path
- from openai import (APIConnectionError, APITimeoutError, AuthenticationError,
-                     InternalServerError, OpenAI, RateLimitError)
- 
-+from src.llm.billing import BillingTracker, safe_model, token_count, usage_dict
- from src.utils.logger import get_logger
- 
- logger = get_logger("llm")
-@@ -24,6 +25,23 @@ class DeepSeekClient:
-         self._request_times = []
-         self._lock = threading.Lock()
-         self.audit_log_path = Path(__file__).resolve().parents[2] / "logs/llm_audit.log"
-+        self.billing = BillingTracker()
-+        self.last_billing = None
-+
-+    @property
-+    def billing_log_path(self):
-+        return self.billing.ledger_path
-+
-+    @billing_log_path.setter
-+    def billing_log_path(self, path):
-+        self.billing.ledger_path = Path(path)
-+
-+    def _record_usage(self, model, usage, stream=False, status="ok"):
-+        try:
-+            self.last_billing = self.billing.record(model, usage, stream, status)
-+        except (OSError, ValueError, KeyError, TypeError):
-+            self.billing.last_error = "本次费用未能估算，请检查计费配置；实际扣费以服务商账单为准"
-+            self.last_billing = None
- 
-     @property
-     def configured(self):
-@@ -78,8 +96,21 @@ class DeepSeekClient:
-     def _log_audit(self, duration, usage, status):
-         if not self.config.safety.audit_log.enabled:
-             return
--        record = {"timestamp": datetime.now().isoformat(), "model": self.model,
--                  "duration_sec": round(duration, 3), "usage": usage, "status": status}
-+        audit_usage = {}
-+        for key in ("prompt_tokens", "completion_tokens", "total_tokens",
-+                    "prompt_cache_hit_tokens", "prompt_cache_miss_tokens"):
-+            value = token_count(usage.get(key))
-+            if value is not None:
-+                audit_usage[key] = value
-+        for key, allowed in (("prompt_tokens_details", ("cached_tokens",)),
-+                             ("completion_tokens_details", ("reasoning_tokens",))):
-+            details = usage.get(key)
-+            if isinstance(details, dict):
-+                filtered = {name: details[name] for name in allowed if token_count(details.get(name)) is not None}
-+                if filtered:
-+                    audit_usage[key] = filtered
-+        record = {"timestamp": datetime.now().isoformat(), "model": safe_model(self.model),
-+                  "duration_sec": round(duration, 3), "usage": audit_usage, "status": status}
-         try:
-             self.audit_log_path.parent.mkdir(exist_ok=True)
-             with self.audit_log_path.open("a", encoding="utf-8") as handle:
-@@ -98,12 +129,14 @@ class DeepSeekClient:
-             try:
-                 response = self.client.chat.completions.create(
-                     model=self.model, messages=messages, stream=False, **self._params(kwargs))
--                usage = response.usage.model_dump() if response.usage else {}
-+                usage = usage_dict(getattr(response, "usage", None))
-+                self._record_usage(getattr(response, "model", None) or self.model, usage)
-                 self._log_audit(time.monotonic()-start, usage, "ok")
-                 return response.choices[0].message.content or ""
-             except AuthenticationError:
-                 raise ValueError("API 密钥未通过验证，请检查本地配置") from None
-             except _TRANSIENT:
-+                self._record_usage(self.model, {}, status="connection_error")
-                 self._log_audit(time.monotonic()-start, {}, "connection_error")
-                 if attempt+1 == cfg.max_attempts:
-                     raise RuntimeError("DeepSeek 暂时无法连接，请稍后重试") from None
-@@ -118,23 +151,40 @@ class DeepSeekClient:
-         cfg = self.deepseek_cfg.retry
-         for attempt in range(cfg.max_attempts):
-             emitted = False
-+            recorded = False
-+            usage = {}
-+            response_model = self.model
-             self._check_rate_limit()
-             start = time.monotonic()
-             try:
-+                params = self._params(kwargs)
-+                params["stream_options"] = {**(params.get("stream_options") or {}), "include_usage": True}
-                 response = self.client.chat.completions.create(
--                    model=self.model, messages=messages, stream=True, **self._params(kwargs))
-+                    model=self.model, messages=messages, stream=True, **params)
-+                complete = False
-                 try:
-                     for chunk in response:
-+                        response_model = getattr(chunk, "model", None) or response_model
-+                        if getattr(chunk, "usage", None) is not None:
-+                            usage = usage_dict(chunk.usage)
-                         if chunk.choices and chunk.choices[0].delta.content:
-                             emitted = True
-                             yield chunk.choices[0].delta.content
-+                    complete = True
-                 finally:
--                    response.close()
--                self._log_audit(time.monotonic()-start, {"stream": True}, "ok")
-+                    try:
-+                        response.close()
-+                    finally:
-+                        self._record_usage(response_model, usage, stream=True,
-+                                           status="ok" if complete else "stream_interrupted")
-+                        recorded = True
-+                self._log_audit(time.monotonic()-start, usage, "ok")
-                 return
-             except AuthenticationError:
-                 raise ValueError("API 密钥未通过验证，请检查本地配置") from None
-             except _TRANSIENT:
-+                if not recorded:
-+                    self._record_usage(response_model, usage, stream=True, status="stream_interrupted")
-                 self._log_audit(time.monotonic()-start, {}, "stream_interrupted")
-                 if emitted or attempt+1 == cfg.max_attempts:
-                     raise RuntimeError("报告生成中断，已收到的内容保留，请重试") from None
-diff --git a/src/pipeline/adapters.py b/src/pipeline/adapters.py
-index f05d36d..a9fc2f1 100644
---- a/src/pipeline/adapters.py
-+++ b/src/pipeline/adapters.py
-@@ -6,18 +6,30 @@ from src.tuning.optimizer import OptunaOptimizer
- 
- 
- class ProjectPreprocessor(Preprocessor):
-+    def __init__(self, data_config, feature_config, knn_reference_limit=5000):
-+        super().__init__(data_config, feature_config)
-+        self.knn_reference_limit = knn_reference_limit
-+
-     def _fit_imputers(self, df):
-         self.empty_columns = [c for c in self.data_cfg.columns.numerical + self.data_cfg.columns.anonymous
-                               if c in df.columns and df[c].isna().all()]
-         for col in self.empty_columns:
-             df[col] = 0.0
-         super()._fit_imputers(df)
-+        if self._knn_imputer is not None and len(df) > self.knn_reference_limit:
-+            indices = np.random.default_rng(42).choice(len(df), self.knn_reference_limit, replace=False)
-+            reference = self._knn_imputer._fit_X[indices].copy()
-+            self._knn_imputer.fit(reference)
- 
-     def _apply_imputers(self, df):
-         for col in self.empty_columns:
-             if col in df:
-                 df[col] = df[col].fillna(0.0)
--        return super()._apply_imputers(df)
-+        if len(df) <= 2000:
-+            return super()._apply_imputers(df)
-+        import pandas as pd
-+        return pd.concat([super(ProjectPreprocessor, self)._apply_imputers(df.iloc[i:i+2000].copy())
-+                          for i in range(0, len(df), 2000)])
- 
-     def _apply_scaler(self, df):
-         method = self.feature_cfg.scaling.method
+     violations = []
 diff --git a/src/pipeline/orchestrator.py b/src/pipeline/orchestrator.py
-index bd81385..c044a2e 100644
+index c044a2e..ce11dad 100644
 --- a/src/pipeline/orchestrator.py
 +++ b/src/pipeline/orchestrator.py
-@@ -62,9 +62,10 @@ class TrainingPipeline:
-         self.feature_selector = None
-         self.tuning_history = []
-         self.tuning_metric = self.model_cfg.xgboost.tuning.metric
-+        self.training_profile = "original"
- 
-     def run(self, use_sample=False, skip_mlp=False, skip_tuning=True, progress_callback=None,
--            model_names=None, data=None, quick=False):
-+            model_names=None, data=None, quick=False, training_profile=None):
-         start = time.time()
-         np.random.seed(42)
-         random.seed(42)
-@@ -83,6 +84,12 @@ class TrainingPipeline:
-             self.model_cfg.xgboost.tuning.n_trials = self.project_cfg.demo.trials
-             self.model_cfg.mlp.training.epochs = self.project_cfg.demo.epochs
-             self.model_cfg.mlp.architecture.hidden_layers = [64, 32]
-+        training_cfg = self.project_cfg.get("training", {})
-+        self.training_profile = training_profile or training_cfg.get("default_profile", "original")
-+        if self.training_profile not in ("original", "robust"):
-+            raise ValueError("训练方案应为 original 或 robust")
-+        if self.training_profile == "robust":
-+            self._apply_training_profile(training_cfg)
-         for name in ["xgboost", "lightgbm"]:
-             self.model_cfg[name].params.n_jobs = 2
-         self.data_source = "合成演示数据" if use_sample else "用户提供的数据"
-@@ -113,6 +120,12 @@ class TrainingPipeline:
-                 "eval_results": self.eval_results, "feature_count": self.X_train.shape[1],
-                 "train_samples": len(self.X_train)}
- 
-+    def _apply_training_profile(self, cfg):
-+        for name in ("xgboost", "lightgbm"):
-+            self.model_cfg[name].params.update(cfg.get(name, {}))
-+        for group in ("architecture", "training"):
-+            self.model_cfg.mlp[group].update(cfg.get("mlp", {}).get(group, {}))
-+
-     def _step_load_data(self, use_sample=False, data=None):
-         self.df = validate_training_data(data.copy() if data is not None else
-                                          DataLoader(self.data_cfg).load_train(use_sample=use_sample))
-@@ -140,14 +153,19 @@ class TrainingPipeline:
-             self.input_defaults[col] = value.item() if isinstance(value, np.generic) else value
- 
-     def _step_feature_engineering(self):
--        self.feature_builder = ProjectFeatureBuilder(self.project_cfg.features)
-+        rules = self.project_cfg.features
-+        names = self.project_cfg.get("training", {}).get("feature_names", [])
-+        if self.training_profile == "robust" and names:
-+            rules = [rule for rule in rules if rule["name"] in names]
-+        self.feature_builder = ProjectFeatureBuilder(rules)
-         self.X_train = self.feature_builder.build(self.raw_train)
-         self.X_val = self.feature_builder.build(self.raw_val)
-         self.X_test = self.feature_builder.build(self.raw_test)
-         self.data_cfg.columns.numerical += self.feature_builder.get_created_features()
- 
-     def _step_preprocess(self):
--        self.preprocessor = ProjectPreprocessor(self.data_cfg, self.feature_cfg)
-+        limit = self.project_cfg.get("training", {}).get("knn_reference_limit", 5000)
-+        self.preprocessor = ProjectPreprocessor(self.data_cfg, self.feature_cfg, limit)
-         self.X_train = self.preprocessor.fit_transform(self.X_train)
-         self.X_val = self.preprocessor.transform(self.X_val)
-         self.X_test = self.preprocessor.transform(self.X_test)
-@@ -199,11 +217,14 @@ class TrainingPipeline:
-         evaluator = Evaluator()
-         self.test_predictions = {}
-         self.thresholds = {}
-+        self.validation_results = {}
-         cfg = self.model_cfg.evaluation.threshold_optimization
-         for name, model in self.models.items():
-             threshold = cfg.fixed_value if cfg.method == "fixed" or not cfg.enabled else \
-                 evaluator.find_best_threshold(self.y_val, model.predict_proba(self.X_val), cfg.method)
-             p = positive_probability(model.predict_proba(self.X_test))
-+            self.validation_results[name] = evaluator.evaluate(
-+                self.y_val, model.predict_proba(self.X_val), threshold).to_dict()
-             self.thresholds[name] = threshold
-             self.test_predictions[name] = p
-             self.eval_results[name] = evaluator.evaluate(self.y_test, p, threshold).to_dict()
-@@ -228,10 +249,12 @@ class ArtifactManager:
-                 "raw_columns": pipeline.raw_columns, "train_samples": len(pipeline.X_train),
-                 "val_samples": len(pipeline.X_val), "test_samples": len(pipeline.X_test),
-                 "model_names": list(pipeline.models), "seed": 42,
-+                "training_profile": pipeline.training_profile,
-                 "fit_train_indices": pipeline.raw_train.index.tolist()}
-         bundle = {"meta": meta, "models": pipeline.models, "preprocessor": pipeline.preprocessor,
-                   "feature_builder": pipeline.feature_builder, "feature_selector": pipeline.feature_selector,
-                   "input_defaults": pipeline.input_defaults, "eval_results": pipeline.eval_results,
-+                  "validation_results": pipeline.validation_results,
-                   "thresholds": pipeline.thresholds, "project_config": pipeline.project_cfg.to_dict(),
-                   "background": pipeline.X_train.head(100), "raw_test": pipeline.raw_test.head(200),
-                   "raw_baseline": pipeline.raw_train.head(200), "y_test": pipeline.y_test.head(200),
-diff --git a/tests/test_project.py b/tests/test_project.py
-index ce07106..ff87949 100644
---- a/tests/test_project.py
-+++ b/tests/test_project.py
-@@ -164,6 +164,7 @@ def llm(configs, tmp_path, monkeypatch):
-     cfg.deepseek.retry.initial_wait = 0
-     client = DeepSeekClient(cfg)
-     client.audit_log_path = tmp_path / "audit.log"
-+    client.billing_log_path = tmp_path / "billing.sqlite3"
-     return client
- 
- 
+@@ -204,10 +204,10 @@ class TrainingPipeline:
+         self.models["mlp"] = self.mlp_model
+
+     def _step_ensemble(self):
+-        if not self.model_cfg.ensemble.enabled or not {"xgboost", "mlp"}.issubset(self.models):
++        if not self.model_cfg.ensemble.enabled or not {"xgboost", "lightgbm", "mlp"}.issubset(self.models):
+             return
+         self.ensemble = EnsembleModel(self.model_cfg.ensemble)
+-        for name in ["xgboost", "mlp"]:
++        for name in ["xgboost", "lightgbm", "mlp"]:
+             self.ensemble.add_model(name, self.models[name])
+         self.ensemble.fit(self.X_val, self.y_val)
+         self.models["ensemble"] = self.ensemble
+diff --git a/tests/test_compliance.py b/tests/test_compliance.py
+index c19700a..43d46dd 100644
+--- a/tests/test_compliance.py
++++ b/tests/test_compliance.py
+@@ -147,7 +147,7 @@ def test_prediction_page_has_real_compliance_entry(monkeypatch):
+         app.switch_page("pages/4_🎯_单笔预测.py").run()
+         next(item for item in app.button if item.label == "开始风险评估").click().run()
+         assert not app.exception
+-        assert any(tab.label == "7.2 政策合规检查" for tab in app.tabs)
++        assert any(tab.label == "政策合规检查" for tab in app.tabs)
+         labels = {item.label for item in app.number_input}
+         assert {"检查使用的 LPR（%）", "申请人年龄", "待检查的贷款年利率（%）"} <= labels
+         assert any(item.label == "贷款用途" for item in app.selectbox)

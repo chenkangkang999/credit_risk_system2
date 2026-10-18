@@ -204,10 +204,10 @@ class TrainingPipeline:
         self.models["mlp"] = self.mlp_model
 
     def _step_ensemble(self):
-        if not self.model_cfg.ensemble.enabled or not {"xgboost", "mlp"}.issubset(self.models):
+        if not self.model_cfg.ensemble.enabled or not {"xgboost", "lightgbm", "mlp"}.issubset(self.models):
             return
         self.ensemble = EnsembleModel(self.model_cfg.ensemble)
-        for name in ["xgboost", "mlp"]:
+        for name in ["xgboost", "lightgbm", "mlp"]:
             self.ensemble.add_model(name, self.models[name])
         self.ensemble.fit(self.X_val, self.y_val)
         self.models["ensemble"] = self.ensemble

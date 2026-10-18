@@ -26,9 +26,11 @@ def symbols(source):
 def main():
     report = build_report()
     reasons = {
+        "README.md": "更新两人分工、真实数据接入状态、三模型融合与特征选择说明。",
         ".gitignore": "增加环境文件、私有设置、日志和产物排除，单独允许合成演示模型。",
         "app/assets/style.css": "统一主题、导航、指标卡片和窄屏布局。",
-        "app/components/sidebar.py": "删除用户指定的课程说明文字；品牌样式、导航和模型来源保持原样。",
+        "app/components/sidebar.py": "品牌名称与英文小字分组，删除标语；保留导航与模型来源逻辑。",
+        "app/components/runtime.py": "真实文件缓存绑定修改时间并返回副本，加载前校验，失败明确提示。",
         "app/streamlit_app.py": "首页状态、模型指标、流程介绍与功能入口。",
         "configs/llm_config.yaml": "注册政策检查模板与 agents.compliance，实际使用启停、温度和 token 上限；API 仍通过环境变量读取。",
         "configs/prompts/feature_suggestion.j2": "改成固定操作的结构化建议，不要求返回可执行代码。",
@@ -38,19 +40,26 @@ def main():
         "src/llm/agents/report_agent.py": "支持实际模型名称、阈值和可选 SHAP。",
         "src/llm/client.py": "密钥按 .env 读取，真实请求前脱敏；同步/流式记录真实 Token，按响应模型估算费用，计费故障不丢弃已生成回答。",
         "src/llm/prompts.py": "模板目录按项目定位，中文 JSON 渲染与模板缓存刷新。",
-        "src/pipeline/orchestrator.py": "重整训练步骤、复用同学模型，统一训练/推理状态并保存完整产物。",
+        "src/pipeline/orchestrator.py": "仅在融合条件和模型列表两处加入 LightGBM，衔接同学三模型权重配置。",
+        "scripts/check_changes.py": "保护基线更新到 d329cbf，记录上次个人上传后的同学改动。",
+        "scripts/check_staged.py": "只允许与同学基线一致的数据目录说明文件，继续阻止真实数据及私有文件上传。",
+        "scripts/write_review.py": "更新本轮改动说明与三模型衔接记录，补充监控页面的说明映射。",
+        "docs/拟提交说明.md": "记录用户已批准的提交范围、验证结果及隐私排除。",
+        "docs/验收结果.md": "更新真实数据加载验证和针对性测试，说明未开展全量训练。",
+        "tests/test_compliance.py": "同步政策合规检查标签名称的既有断言。",
         "src/utils/config_loader.py": "支持普通字典、属性访问及安全环境变量替换，明确读取项目 .env。",
         "src/utils/logger.py": "集中日志处理，避免重复 handler，日志中的密钥自动隐藏。",
         "src/utils/metrics.py": "统一概率格式，处理单类/非法输入，提供指标、阈值和曲线数据。",
     }
     page_reasons = {
-        "1_": "选择/上传数据、字段校验、质量和分布展示。",
-        "2_": "KNN 预览、原始单位衍生特征、建议预览与本地规则保存。",
+        "1_": "切换数据来源时清理旧选择，加载与校验成功后才更新状态，失败保留原来源。",
+        "2_": "精简 KNN 填充说明，去掉人员归属描述。",
         "3_": "模型选择、稳健训练方案与前后对照、AUC/KS/多目标调参、曲线、验证指标与特征重要性。",
-        "4_": "统一预测、SHAP、报告；7.2 政策检查显著入口、规则输入和真实 DeepSeek JSON 结果。",
+        "4_": "合规标签改为政策合规检查，移除页面上的章节编号。",
         "5_": "全局 SHAP、分布、依赖及单笔解释。",
-        "6_": "上下文对话、报告/建议/案例；真实 Token、单次及累计人民币估算、历史明细，公开模式不读私有账本。",
-        "7_": "只读查看同学基础配置，本地保存扩展配置，只显示 API 配置状态。"
+        "6_": "将聊天输入框放入普通布局，避免页面自动下滚裁掉顶部标识，对话和计费逻辑不变。",
+        "7_": "只读查看同学基础配置，本地保存扩展配置，只显示 API 配置状态。",
+        "8_": "精简模型监控页面说明，去掉人员归属描述。"
     }
     for path in report["modified_existing_files"]:
         if path.startswith("app/pages/"):
@@ -61,7 +70,7 @@ def main():
              f"- 用户提供的提交：{USER_BASE}",
              f"- 原有同学核心代码基线：{ORIGINAL_TEAM_BASE}",
              f"- 实际下载并保留的同学最新提交：{CHECKOUT_BASE}",
-             "- 最新基线包含已上传的个人版本 ca04a6c 和同学新增的两个 Lending Club 数据适配文件；同学原有核心和新增文件都保持原样。",
+             "- 最新基线包含已上传的个人版本及同学的适配器、真实数据入口和三模型权重。27 个受保护核心文件保持原样；共用应用文件仅进行下表列明的小范围修复。",
              "", "## 改动过的原有文件", "",
              "以下原文件主要是你负责章节的基础实现。这里如实列出修改，不能理解为所有原文件一行未动。",
              "", "| 原有文件 | 修改位置（当前行号） | 原因 |",
@@ -91,7 +100,8 @@ def main():
               "- 特征选择：直接调用原 FeatureSelector，只改变调用时机，确保只拟合训练集。",
               "- SHAP：继续调用原 SHAPAnalyzer，页面负责画力图并区分原始输出与模型概率。",
               "- 漂移监控：页面直接调用同学 DriftDetector，不重写检测算法。",
-              "- 融合：沿用同学 XGBoost+MLP 的配置与模型类，在验证集处理需要拟合的融合步骤；LightGBM 独立训练并参与 A/B。",
+              "- 融合：沿用同学模型类与 0.4/0.4/0.2 权重配置，三模型齐全且开启融合时加入 XGBoost、LightGBM 和 MLP；缺模型时跳过融合。",
+              "- 真实数据：保留同学全量文件入口，补充来源切换、缓存刷新、返回副本和加载失败保护；原始 CSV 不修改、不上传。",
               "- 本地设置保存到 .local/settings.yaml，不覆盖同学的 data、feature、model 配置。",
               "", "## 接口与运行习惯", "",
               "- 原 TrainingPipeline.run 参数保留，新增 model_names、data、quick；原命令行 --use-sample、--skip-mlp、--tune 保留。",
@@ -103,7 +113,7 @@ def main():
               "- 结构化清单在 docs/change_manifest.json。",
               "- 重新执行 python scripts/check_changes.py 会检查受保护文件及忽略规则。",
               "- 用户已同意本次上传；提交前检查远端 main，并用 scripts/check_staged.py 核对实际提交内容。",
-              "- 本地 DeepSeek 已通过同步、流式、风险报告、特征建议和规则检查的真实连接验证；密钥只保留在被忽略的 .env。", ""]
+              "- 本地 DeepSeek 此前已通过真实连接验证；本轮未发起真实 API 请求，密钥仍只保留在被忽略的 .env。", ""]
     (ROOT/"docs/修改与衔接说明.md").write_text("\n".join(lines), encoding="utf-8")
     candidates = set(git("ls-files").decode("utf-8").splitlines()+report["new_files"])
     violations = []

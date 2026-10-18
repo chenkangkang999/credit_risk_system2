@@ -37,8 +37,10 @@ def main():
         count += 1
         parts = Path(path).parts
         name = Path(path).name
+        data_readme = path == "data/README.md" and data == git_bytes("show", f"{CHECKOUT_BASE}:data/README.md")
         if (name.startswith(".env") and name != ".env.example") or name == "secrets.toml" or \
-                any(part in {".venv", ".local", "logs", ".git"} for part in parts) or path.startswith("data/"):
+                any(part in {".venv", ".local", "logs", ".git"} for part in parts) or \
+                (path.startswith("data/") and not data_readme):
             sensitive_paths.append(path)
         if any(secret in data for secret in key_forms) or any(re.search(pattern, data) for pattern in patterns):
             matches.append(path)

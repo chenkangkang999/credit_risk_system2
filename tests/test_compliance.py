@@ -147,7 +147,7 @@ def test_prediction_page_has_real_compliance_entry(monkeypatch):
         app.switch_page("pages/4_🎯_单笔预测.py").run()
         next(item for item in app.button if item.label == "开始风险评估").click().run()
         assert not app.exception
-        assert any(tab.label == "7.2 政策合规检查" for tab in app.tabs)
+        assert any(tab.label == "政策合规检查" for tab in app.tabs)
         labels = {item.label for item in app.number_input}
         assert {"检查使用的 LPR（%）", "申请人年龄", "待检查的贷款年利率（%）"} <= labels
         assert any(item.label == "贷款用途" for item in app.selectbox)

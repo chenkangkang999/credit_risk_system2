@@ -6,9 +6,9 @@ import streamlit as st
 def render_sidebar():
     from app.components.runtime import ROOT, public_mode
     with st.sidebar:
-        st.markdown('<div class="brand-icon">◈</div><div class="brand-name">智能风控<span>CREDIT RISK LAB</span></div>',
+        st.markdown('<div class="sidebar-brand"><div class="brand-icon">◈</div>'
+                    '<div class="brand-name">智能风控<span>CREDIT RISK LAB</span></div></div>',
                     unsafe_allow_html=True)
-        st.caption("从模型判断，到可解释决策")
         links = [("streamlit_app.py", "工作台", "🏠"),
                  ("pages/1_📊_数据探索.py", "数据探索", "📊"),
                  ("pages/2_🔧_特征工程.py", "特征工程", "🔧"),

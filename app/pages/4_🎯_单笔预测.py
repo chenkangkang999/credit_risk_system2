@@ -26,7 +26,7 @@ def render_compliance_result(result):
 
 
 _, cfg = init_page("单笔风险评估", "输入一笔贷款申请，查看模型判断、关键因素和辅助审批建议。", "PREDICTION")
-st.info("7.2 政策合规检查已接入：完成下方风险评估后，打开“7.2 政策合规检查”标签，可填写 LPR、年龄、证明材料和用途，并调用 DeepSeek 逐条检查。")
+st.info("完成风险评估后，可在“政策合规检查”中核对申请资料和审批结果。")
 service, bundle = require_service()
 low, high = risk_limits(bundle)
 model_name = st.selectbox("评估模型", list(service.models))
@@ -57,7 +57,7 @@ if prediction:
     with right:
         st.metric("预计月供", f'{prediction["features"]["installment"]:,.0f} 元')
         st.metric("年收入", f'{prediction["features"]["annualIncome"]:,.0f} 元')
-    tab1, tab2, tab3 = st.tabs(["风险解释", "风险报告", "7.2 政策合规检查"])
+    tab1, tab2, tab3 = st.tabs(["风险解释", "风险报告", "政策合规检查"])
     with tab1:
         render_single(prediction["explanation"], f'SHAP 解释对象：{prediction["explanation_model"]}')
         if prediction["model_name"] != prediction["explanation_model"]:
@@ -79,7 +79,7 @@ if prediction:
         st.download_button("下载当前报告", report, file_name="risk_report.md", mime="text/markdown")
     with tab3:
         st.subheader("政策合规检查 Agent · 课程演示")
-        st.caption("规则来源为指导书 7.2 和项目配置。4 倍 LPR、年龄证明及用途限制是本项目的课程规则，不代表全国通用法律；结果供人工复核参考。")
+        st.caption("规则来源为课程指导书和项目配置。4 倍 LPR、年龄证明及用途限制是本项目的课程规则，不代表全国通用法律；结果供人工复核参考。")
         client, prompts, llm_cfg = llm_tools()
         agent = ComplianceAgent(client, prompts, cfg.compliance, agent_config=llm_cfg.agents.compliance)
         a, b, c = st.columns(3)
@@ -102,10 +102,10 @@ if prediction:
         check_features = dict(prediction["features"])
         check_features.update(age=age, repayment_proof=repayment_proof, loan_purpose=purpose, lpr=lpr,
                               interestRate=rate)
-        with st.expander("查看当前全部检查规则与 7.2 实现位置"):
+        with st.expander("查看检查规则与实现位置"):
             for rule in agent.rule_list(extra_rules):
                 st.write("• " + rule)
-            st.code("步骤 1：configs/prompts/compliance_check.j2\n步骤 2：src/llm/agents/compliance_agent.py\n步骤 3：configs/llm_config.yaml → agents.compliance\n步骤 4：单笔预测 → 7.2 政策合规检查", language="text")
+            st.code("步骤 1：configs/prompts/compliance_check.j2\n步骤 2：src/llm/agents/compliance_agent.py\n步骤 3：configs/llm_config.yaml → agents.compliance\n步骤 4：单笔预测 → 政策合规检查", language="text")
         st.subheader("1. 本地规则检查 · 无 API 费用")
         if not agent.enabled:
             st.warning("政策合规检查 Agent 已在 agents.compliance.enabled 中关闭，本地与 DeepSeek 检查均停止。")

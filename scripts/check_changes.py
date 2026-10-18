@@ -7,8 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 USER_BASE = "60318f595a823e7fbb381960464eaad2e7016b5c"
 ORIGINAL_TEAM_BASE = "82b8c132702c61cb571019418f6ccf1fa5e59d91"
-PREVIOUS_PERSONAL_COMMIT = "ca04a6c0c2b968013d9fd5b9a381b5137ae3bc36"
-CHECKOUT_BASE = "0a63f13337147d198f9a3cdbc069d11b200f1561"
+PREVIOUS_PERSONAL_COMMIT = "cb93436f6ec081b6d5d4acf4200d364c2c06f22a"
+CHECKOUT_BASE = "d329cbfd4aa1acb58f401edc6427f55e34408c6a"
 
 
 def git(*args):
@@ -43,9 +43,8 @@ def build_report():
                                  ".streamlit/secrets.toml"], cwd=ROOT, capture_output=True, text=True).stdout
     result = {"user_base": USER_BASE, "checkout_base": CHECKOUT_BASE,
               "original_team_base": ORIGINAL_TEAM_BASE,
-              "teammate_updates_after_user_base": sorted(set(
-                  git("diff", "--name-only", f"{USER_BASE}..{ORIGINAL_TEAM_BASE}").decode().splitlines() +
-                  git("diff", "--name-only", f"{PREVIOUS_PERSONAL_COMMIT}..{CHECKOUT_BASE}").decode().splitlines())),
+              "teammate_updates_since_previous_upload":
+                  git("diff", "--name-only", f"{PREVIOUS_PERSONAL_COMMIT}..{CHECKOUT_BASE}").decode().splitlines(),
               "modified_existing_files": changed, "new_files": added,
               "protected_unchanged": unchanged, "ignored_secret_paths": env_ignored.splitlines()}
     folder = ROOT / "docs"
@@ -55,6 +54,7 @@ def build_report():
                  "docs/修改与衔接说明.md", "docs/revision_check.json"}
     patch_paths = [path for path in changed if path not in generated]
     patch = git("diff", "--no-ext-diff", CHECKOUT_BASE, "--", *patch_paths) if patch_paths else b""
+    patch = b"\n".join(b"" if line == b" " else line for line in patch.split(b"\n"))
     (folder / "existing_files.diff").write_bytes(patch)
     print(json.dumps({"modified": len(changed), "new": len(added), "protected_unchanged": len(unchanged)}))
     return result

@@ -50,19 +50,31 @@ REAL_DATA_FILES = ("train_merged.csv", "train.csv")
 
 def available_real_data():
     """返回 data/raw 下存在的真实数据文件（合并 105 万数据优先）。"""
-    return [name for name in REAL_DATA_FILES if (ROOT / "data" / "raw" / name).exists()]
+    return [name for name in REAL_DATA_FILES if (ROOT / "data" / "raw" / name).is_file()]
 
 
 @st.cache_resource(show_spinner="正在加载本地真实数据…")
+def _read_real_data(path, stamp):
+    from src.pipeline.orchestrator import validate_training_data
+    return validate_training_data(pd.read_csv(path))
+
+
 def load_real_data(name):
-    return pd.read_csv(ROOT / "data" / "raw" / name)
+    if name not in REAL_DATA_FILES:
+        raise ValueError("请选择 train_merged.csv 或 train.csv")
+    path = ROOT / "data" / "raw" / name
+    return _read_real_data(str(path), path.stat().st_mtime_ns).copy()
 
 
 def current_data():
     if not public_mode():
         source = st.session_state.get("data_source")
-        if source in REAL_DATA_FILES and (ROOT / "data" / "raw" / source).exists():
-            return load_real_data(source)
+        if source in REAL_DATA_FILES:
+            try:
+                return load_real_data(source)
+            except (OSError, ValueError, pd.errors.ParserError, UnicodeDecodeError) as error:
+                st.error(f"当前真实数据无法读取：{error}。请到数据探索页重新选择数据。")
+                st.stop()
         if "active_data" in st.session_state:
             return st.session_state["active_data"].copy()
     path = ROOT / "demo_assets/sample.json"

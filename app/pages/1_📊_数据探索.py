@@ -6,7 +6,8 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from app.components.runtime import ROOT, available_real_data, current_data, generated_data, init_page, public_mode, source_label
+from app.components.runtime import ROOT, available_real_data, current_data, init_page, load_real_data, public_mode, source_label
+from src.pipeline.orchestrator import validate_training_data
 
 _, cfg = init_page("数据探索", "从样本规模、缺失情况与变量分布，了解当前数据。", "DATA")
 if not public_mode():
@@ -18,9 +19,9 @@ if not public_mode():
                 if uploaded.size > cfg.demo.max_upload_mb*1024*1024:
                     raise ValueError("文件超过 20 MB；大数据请放入本地 data/raw 目录")
                 frame = pd.read_csv(uploaded)
-                from src.pipeline.orchestrator import validate_training_data
                 validate_training_data(frame)
                 if st.button("使用这份数据", type="primary"):
+                    st.session_state.pop("data_source", None)
                     st.session_state["active_data"] = frame
                     st.session_state["data_label"] = "用户上传：" + uploaded.name
                     st.success("当前数据源已更新，训练页面将使用此数据。")
@@ -31,21 +32,32 @@ if not public_mode():
         if not files:
             st.info(f"未找到真实数据文件，请将 train_merged.csv 或 train.csv 放入 {ROOT / 'data' / 'raw'}")
         else:
-            labels = {"train_merged.csv": "天池 + Lending Club 合并数据（约 105 万行）",
-                      "train.csv": "天池数据（约 80 万行）"}
+            labels = {"train_merged.csv": "天池 + Lending Club 合并数据",
+                      "train.csv": "天池数据"}
             selected = st.selectbox("选择数据文件", files,
                                     format_func=lambda name: f"{name} · {labels.get(name, '')}")
             if st.button("加载本地真实数据", type="primary"):
-                st.session_state["data_source"] = selected
-                st.session_state["data_label"] = f"本地真实数据：{selected}"
-                st.session_state.pop("active_data", None)
-                st.success(f"已加载 {selected}，全站数据源已切换（首次加载大文件可能需要几秒到几十秒）。")
+                try:
+                    count = len(load_real_data(selected))
+                except (OSError, ValueError, pd.errors.ParserError, UnicodeDecodeError) as error:
+                    st.error(f"加载失败：{error}")
+                else:
+                    st.session_state["data_source"] = selected
+                    st.session_state["data_label"] = f"本地真实数据：{selected}"
+                    st.session_state.pop("active_data", None)
+                    st.success(f"已加载 {selected}，共 {count:,} 行，数据源已切换。")
     elif choice == "本地天池 CSV":
         path = ROOT / "data/raw/train.csv"
         if path.exists():
             if st.button("加载前 20,000 行用于页面探索"):
-                st.session_state["active_data"] = pd.read_csv(path, nrows=20000)
-                st.session_state["data_label"] = "天池数据（前 20,000 行）"
+                try:
+                    frame = validate_training_data(pd.read_csv(path, nrows=20000))
+                except (OSError, ValueError, pd.errors.ParserError, UnicodeDecodeError) as error:
+                    st.error(f"加载失败：{error}")
+                else:
+                    st.session_state.pop("data_source", None)
+                    st.session_state["active_data"] = frame
+                    st.session_state["data_label"] = f"天池数据（前 {len(frame):,} 行）"
         else:
             st.info(f"请将 train.csv 放入 {path.parent}")
     elif st.button("恢复合成演示数据"):

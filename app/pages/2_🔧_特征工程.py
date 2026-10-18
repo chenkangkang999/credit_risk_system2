@@ -14,7 +14,7 @@ configs, cfg = init_page("特征工程", "查看清洗效果，构造业务特�
 data = current_data().drop(columns=["id", "isDefault"], errors="ignore")
 clean, derived, assistant = st.tabs(["预处理与 KNN", "衍生特征", "LLM 特征建议"])
 with clean:
-    st.info("沿用同学的 KNN 填充：dti（负债收入比）、revolUtil（信用利用率）。")
+    st.info("KNN 填充：dti（负债收入比）、revolUtil（信用利用率）。")
     if st.button("预览前 500 行预处理效果", type="primary"):
         feature_cfg = copy.deepcopy(configs.get("feature"))
         feature_cfg.scaling.method = "none"

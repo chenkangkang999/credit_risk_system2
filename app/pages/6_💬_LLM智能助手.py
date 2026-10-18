@@ -23,7 +23,8 @@ if mode == "自由对话":
     for message in st.session_state[key]:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-    question = st.chat_input("例如：AUC 和 KS 有什么区别？")
+    with st.container():
+        question = st.chat_input("例如：AUC 和 KS 有什么区别？")
     if question:
         history = st.session_state[key]
         with st.chat_message("user"):

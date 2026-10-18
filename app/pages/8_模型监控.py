@@ -9,7 +9,7 @@ import streamlit as st
 from app.components.runtime import init_page, require_service
 from src.monitoring.drift_detector import DriftDetector
 
-init_page("模型监控", "衔接同学的漂移检测器，比较基线与新样本的特征分布。", "MONITORING")
+init_page("模型监控", "比较基线与新样本的特征分布。", "MONITORING")
 _, bundle = require_service()
 baseline = bundle["raw_baseline"].copy()
 new_data = bundle["raw_test"].copy()
@@ -35,4 +35,4 @@ st.plotly_chart(px.histogram(plot, x=column, color="来源", barmode="overlay",
                             color_discrete_sequence=["#3468ea", "#ed9b70"]), use_container_width=True)
 report = detector.get_drift_report(new_data, threshold=threshold)
 st.download_button("下载监控报告", report, file_name="drift_report.txt")
-st.caption("检测逻辑来自同学的原始模块，页面沿用其阈值判定方式。分布变化提示排查，不直接证明模型效果下降。")
+st.caption("根据所选阈值判断特征分布是否出现明显变化。分布变化提示排查，不直接证明模型效果下降。")

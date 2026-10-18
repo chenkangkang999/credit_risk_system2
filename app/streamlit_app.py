@@ -58,12 +58,11 @@ with right:
         st.write("🟢 DeepSeek：已配置" if llm_tools()[0].configured else "⚪ DeepSeek：示例报告模式")
         if bundle:
             st.caption("模型版本：" + bundle["meta"]["run_id"])
-        st.info("无需 API Key 即可体验预测、解释、规则检查与情景对比。")
     with st.container(border=True):
         st.subheader("本次扩展")
         st.write("✓ 教学审批规则检查 Agent")
         st.write("✓ XGBoost / LightGBM 稳定分流")
         st.write("✓ 调整申请条件，比较风险变化")
-        st.write("✓ 接入同学的 KNN、调参和漂移检测")
+        st.write("✓ 接入 KNN、调参和漂移检测")
         st.page_link("pages/9_AB测试.py", label="查看 A/B 测试", icon="🧪")
         st.page_link("pages/8_模型监控.py", label="查看模型监控", icon="📡")

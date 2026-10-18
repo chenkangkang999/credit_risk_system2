@@ -1,5 +1,5 @@
 {
-  "candidate_source_files_checked": 119,
+  "candidate_source_files_checked": 124,
   "secret_pattern_matches": [],
   "env_tracked": false,
   "ignored_paths": [
@@ -8,6 +8,6 @@
     ".streamlit/secrets.toml"
   ],
   "real_api_configured": true,
-  "local_head": "0a63f13337147d198f9a3cdbc069d11b200f1561",
+  "local_head": "d329cbfd4aa1acb58f401edc6427f55e34408c6a",
   "staged_files": []
 }
