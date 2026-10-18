@@ -8,8 +8,11 @@
     # 使用示例数据快速训练（用于调试）
     python scripts/train_pipeline.py --use-sample
 
-    # 使用真实数据 + 启用超参优化（生产模式）
-    python scripts/train_pipeline.py --tune
+    # 使用天池真实数据（data/raw/train.csv）
+    python scripts/train_pipeline.py
+
+    # 使用天池+Lending Club 合并数据（先用 prepare_merged_data.py 生成）
+    python scripts/train_pipeline.py --data-file train_merged.csv
 
     # 仅训练 XGBoost（跳过 MLP）
     python scripts/train_pipeline.py --use-sample --skip-mlp
@@ -38,6 +41,11 @@ def main():
         help="配置目录（默认指向项目根下的 configs/）",
     )
     parser.add_argument("--use-sample", action="store_true", help="使用示例数据（快速）")
+    parser.add_argument(
+        "--data-file",
+        default=None,
+        help="指定 data/raw 下的训练数据文件名（如 train_merged.csv），不指定则用配置默认值",
+    )
     parser.add_argument("--skip-mlp", action="store_true", help="跳过 MLP 训练")
     parser.add_argument("--tune", action="store_true", help="启用超参优化（耗时）")
     args = parser.parse_args()
@@ -48,10 +56,17 @@ def main():
     logger.info(f"加载配置: {args.config_dir}")
     configs = ConfigLoader(args.config_dir)
 
+    # 指定真实数据文件名时，覆盖 data_config 的 train_file，并强制不用示例数据
+    use_sample = args.use_sample
+    if args.data_file:
+        configs.data.paths.train_file = args.data_file
+        use_sample = False
+        logger.info(f"使用指定数据文件: {args.data_file}")
+
     # 2. 创建并运行 Pipeline
     pipeline = TrainingPipeline(configs)
     result = pipeline.run(
-        use_sample=args.use_sample,
+        use_sample=use_sample,
         skip_mlp=args.skip_mlp,
         skip_tuning=not args.tune,
     )

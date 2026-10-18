@@ -18,8 +18,15 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from src.utils.logger import get_logger
+from src.data.adapters.lending_club_adapter import LendingClubAdapter
 
 logger = get_logger("data.loader")
+
+# 数据源适配器注册表：source 名称 -> 适配器实例
+# 新增数据源时，在这里登记一行即可，无需改动其他加载逻辑
+_ADAPTERS = {
+    "lending_club": LendingClubAdapter,
+}
 
 
 class DataLoader:
@@ -53,6 +60,36 @@ class DataLoader:
         """加载测试集"""
         file_path = Path(self.paths.raw_dir) / self.paths.test_file
         return self._load_csv(file_path)
+
+    def load_external(self, path: str, source: str = "tianchi") -> pd.DataFrame:
+        """
+        加载外部数据源文件，并按 source 自动做 schema 适配。
+
+        参数:
+            path: 外部数据文件路径（CSV）
+            source: 数据源标识
+                - "tianchi":      天池格式，不做转换（默认）
+                - "lending_club": Lending Club，自动经适配器转成天池 schema
+
+        使用示例:
+            >>> loader = DataLoader(data_config)
+            >>> df = loader.load_external("data/lending_club.csv", source="lending_club")
+        """
+        file_path = Path(path)
+        df = self._load_csv(file_path)
+
+        # 天池数据直接返回；外部数据源走对应适配器
+        if source == "tianchi":
+            return df
+
+        if source not in _ADAPTERS:
+            available = ["tianchi"] + list(_ADAPTERS.keys())
+            raise ValueError(f"未知数据源 '{source}'，可用: {available}")
+
+        adapter = _ADAPTERS[source]()
+        logger.info(f"检测到数据源 '{source}'，使用 {adapter.__class__.__name__} 转换")
+        df = adapter.transform(df)
+        return df
 
     def _load_csv(self, file_path: Path) -> pd.DataFrame:
         """加载 CSV 文件，支持大文件分块读取"""

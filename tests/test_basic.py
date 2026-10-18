@@ -324,6 +324,68 @@ class TestDriftDetector:
         assert len(report) > 0
 
 
+# ===== 测试 Lending Club 适配器 =====
+class TestLendingClubAdapter:
+    def test_field_mapping_and_target(self):
+        """测试字段重命名、目标变量转换、Current 样本剔除"""
+        from src.data.adapters import LendingClubAdapter
+
+        n = 100
+        rng = np.random.default_rng(42)
+        lc_df = pd.DataFrame({
+            "id": np.arange(n),
+            "loan_amnt": rng.uniform(1000, 20000, n),
+            "term": rng.choice([" 36 months", " 60 months"], n),
+            "int_rate": [f"{rng.uniform(5, 25):.2f}%" for _ in range(n)],
+            "revol_util": [f"{rng.uniform(0, 100):.1f}%" for _ in range(n)],
+            "grade": rng.choice(["A", "B", "C", "D"], n),
+            "sub_grade": rng.choice(["A1", "B2", "C3"], n),
+            "annual_inc": rng.uniform(20000, 150000, n),
+            "dti": rng.uniform(0, 40, n),
+            "home_ownership": rng.choice(["OWN", "RENT", "MORTGAGE"], n),
+            "emp_title": rng.integers(0, 1000, n),
+            "emp_length": rng.choice(["1 year", "5 years", "10+ years"], n),
+            "zip_code": rng.choice(["10xxx", "20xxx", "94xxx"], n),
+            "addr_state": rng.choice(["CA", "NY", "TX"], n),
+            "issue_d": ["Dec-2018"] * n,
+            "earliest_cr_line": ["Jan-2005"] * n,
+            "initial_list_status": rng.choice(["f", "w"], n),
+            "application_type": rng.choice(["Individual", "Joint App"], n),
+            "policy_code": np.ones(n),
+            "purpose": rng.choice(["debt_consolidation", "credit_card"], n),
+            "title": rng.integers(0, 100, n),
+            "loan_status": rng.choice(["Fully Paid", "Charged Off", "Current"], n),
+        })
+
+        adapter = LendingClubAdapter()
+        out = adapter.transform(lc_df)
+
+        # 目标变量已生成且只有 0/1
+        assert "isDefault" in out.columns
+        assert set(out["isDefault"].unique()).issubset({0, 1})
+        # Current 未到期样本已剔除
+        assert len(out) < n
+
+        # 字段已重命名为天池风格
+        assert "loanAmnt" in out.columns
+        assert "annualIncome" in out.columns
+        # % 和 months 已清洗成数值
+        assert pd.api.types.is_numeric_dtype(out["interestRate"])
+        assert pd.api.types.is_numeric_dtype(out["term"])
+        # FICO 已由 grade 反推
+        assert "ficoRangeLow" in out.columns
+        assert "ficoRangeHigh" in out.columns
+        # 天池补齐字段
+        assert "pubRecBankruptcies" in out.columns
+        # 泄漏字段已剔除
+        assert "total_pymnt" not in out.columns
+
+    def test_registered_in_loader(self):
+        """测试适配器已在 DataLoader 注册表中"""
+        from src.data.loader import _ADAPTERS
+        assert "lending_club" in _ADAPTERS
+
+
 # ===== 测试 Feature Builder =====
 class TestFeatureBuilder:
     def test_build(self, configs, sample_df):
