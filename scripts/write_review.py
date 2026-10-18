@@ -4,7 +4,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from check_changes import CHECKOUT_BASE, ROOT, USER_BASE, build_report, git
+from check_changes import CHECKOUT_BASE, ORIGINAL_TEAM_BASE, ROOT, USER_BASE, build_report, git
 
 
 def symbols(source):
@@ -28,15 +28,15 @@ def main():
     reasons = {
         ".gitignore": "增加环境文件、私有设置、日志和产物排除，单独允许合成演示模型。",
         "app/assets/style.css": "统一主题、导航、指标卡片和窄屏布局。",
-        "app/components/sidebar.py": "统一导航与模型来源，展示当前数据和开发/公开模式。",
+        "app/components/sidebar.py": "删除用户指定的课程说明文字；品牌样式、导航和模型来源保持原样。",
         "app/streamlit_app.py": "首页状态、模型指标、流程介绍与功能入口。",
-        "configs/llm_config.yaml": "注册教学规则检查模板；API 仍通过环境变量读取。",
+        "configs/llm_config.yaml": "注册政策检查模板与 agents.compliance，实际使用启停、温度和 token 上限；API 仍通过环境变量读取。",
         "configs/prompts/feature_suggestion.j2": "改成固定操作的结构化建议，不要求返回可执行代码。",
         "configs/prompts/risk_report.j2": "使用实际模型名称与风险区间，移除固定融合模型文案。",
         "src/llm/agents/case_agent.py": "增加可选分类阈值，让案例筛选和分析与评估阈值一致。",
         "src/llm/agents/feature_agent.py": "只发送字段统计，解析结构化建议，预览固定特征操作。",
         "src/llm/agents/report_agent.py": "支持实际模型名称、阈值和可选 SHAP。",
-        "src/llm/client.py": "密钥按 .env 读取，真实请求前脱敏，提供可控重试、限流和流式错误处理。",
+        "src/llm/client.py": "密钥按 .env 读取，真实请求前脱敏；同步/流式记录真实 Token，按响应模型估算费用，计费故障不丢弃已生成回答。",
         "src/llm/prompts.py": "模板目录按项目定位，中文 JSON 渲染与模板缓存刷新。",
         "src/pipeline/orchestrator.py": "重整训练步骤、复用同学模型，统一训练/推理状态并保存完整产物。",
         "src/utils/config_loader.py": "支持普通字典、属性访问及安全环境变量替换，明确读取项目 .env。",
@@ -46,21 +46,22 @@ def main():
     page_reasons = {
         "1_": "选择/上传数据、字段校验、质量和分布展示。",
         "2_": "KNN 预览、原始单位衍生特征、建议预览与本地规则保存。",
-        "3_": "模型选择、AUC/KS/多目标调参、进度、曲线、结果与最新产物切换。",
-        "4_": "统一预测、持久结果、SHAP 力图/瀑布图、报告和规则检查。",
+        "3_": "模型选择、稳健训练方案与前后对照、AUC/KS/多目标调参、曲线、验证指标与特征重要性。",
+        "4_": "统一预测、SHAP、报告；7.2 政策检查显著入口、规则输入和真实 DeepSeek JSON 结果。",
         "5_": "全局 SHAP、分布、依赖及单笔解释。",
-        "6_": "上下文对话、报告入口、特征建议入口和异常案例诊断。",
+        "6_": "上下文对话、报告/建议/案例；真实 Token、单次及累计人民币估算、历史明细，公开模式不读私有账本。",
         "7_": "只读查看同学基础配置，本地保存扩展配置，只显示 API 配置状态。"
     }
     for path in report["modified_existing_files"]:
         if path.startswith("app/pages/"):
             reasons[path] = next(value for key, value in page_reasons.items() if Path(path).name.startswith(key))
     lines = ["# 修改与衔接说明", "",
-             "项目目录：D:\\credit_risk_system3。用户已同意检查通过后提交到原仓库 main；公网展示尚未发布。",
+             "项目目录：D:\\credit_risk_system3。用户已同意本次检查通过后上传原仓库 main；公网展示尚未发布。",
              "", "## 基线区别", "",
              f"- 用户提供的提交：{USER_BASE}",
+             f"- 原有同学核心代码基线：{ORIGINAL_TEAM_BASE}",
              f"- 实际下载并保留的同学最新提交：{CHECKOUT_BASE}",
-             "- 同学在两次提交之间新增漂移监控及相关测试，本次保留并接入 Web，未把这些新增代码算作我的实现。",
+             "- 最新基线包含已上传的个人版本 ca04a6c 和同学新增的两个 Lending Club 数据适配文件；同学原有核心和新增文件都保持原样。",
              "", "## 改动过的原有文件", "",
              "以下原文件主要是你负责章节的基础实现。这里如实列出修改，不能理解为所有原文件一行未动。",
              "", "| 原有文件 | 修改位置（当前行号） | 原因 |",
@@ -101,7 +102,7 @@ def main():
               "- 原有文件完整差异在 docs/existing_files.diff。",
               "- 结构化清单在 docs/change_manifest.json。",
               "- 重新执行 python scripts/check_changes.py 会检查受保护文件及忽略规则。",
-              "- 用户已授权本次上传。上传前检查远端 main，并用 scripts/check_staged.py 核对实际提交内容。",
+              "- 用户已同意本次上传；提交前检查远端 main，并用 scripts/check_staged.py 核对实际提交内容。",
               "- 本地 DeepSeek 已通过同步、流式、风险报告、特征建议和规则检查的真实连接验证；密钥只保留在被忽略的 .env。", ""]
     (ROOT/"docs/修改与衔接说明.md").write_text("\n".join(lines), encoding="utf-8")
     candidates = set(git("ls-files").decode("utf-8").splitlines()+report["new_files"])

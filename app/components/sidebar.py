@@ -37,4 +37,3 @@ def render_sidebar():
         source = bundle["meta"]["source"] if bundle else "暂无训练产物"
         st.success("合成数据演示 · 可放心体验") if source == "合成演示数据" else st.info(source)
         st.caption("公开展示模式" if public_mode() else "本地开发模式")
-        st.caption("本项目用于课程学习与答辩，预测结果仅供演示。")

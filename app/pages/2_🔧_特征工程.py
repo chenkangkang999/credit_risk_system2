@@ -31,6 +31,7 @@ with clean:
         st.dataframe(after.head(20), use_container_width=True)
         st.caption("此处仅演示处理过程；正式训练时只在训练集拟合预处理参数。")
 with derived:
+    st.info("新增 11 项候选业务特征。验证集筛选后，稳健训练默认启用等级和稳定就业两个标记，其余候选保留供后续真实数据评估。")
     st.dataframe(pd.DataFrame([{"特征": r.name, "业务含义": r.description, "操作": r.operation}
                                for r in cfg.features]), hide_index=True, use_container_width=True)
     result = ProjectFeatureBuilder(cfg.features).build(data)
@@ -67,6 +68,8 @@ with assistant:
             from app.components.settings_editor import save_settings
             rules = [r for r in cfg.features if r.name != suggestion["name"]]
             cfg.features = rules + [suggestion]
+            if cfg.get("training", {}).get("feature_names") is not None:
+                cfg.training.feature_names = list(dict.fromkeys(cfg.training.feature_names + [suggestion["name"]]))
             try:
                 save_settings(cfg.to_dict())
                 st.success("已保存。后续训练将使用此规则，已有模型继续使用原训练规则。")

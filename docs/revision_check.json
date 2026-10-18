@@ -1,0 +1,14 @@
+{
+  "phase": "实际暂存区上传前校验快照",
+  "data_and_generator_unchanged": true,
+  "protected_files_expected": 27,
+  "comparison_base": "0a63f13337147d198f9a3cdbc069d11b200f1561",
+  "env_ignored": true,
+  "tests_passed": 114,
+  "user_authorized_upload": true,
+  "public_site_deployed": false,
+  "index_files_checked": 119,
+  "secret_match_paths": [],
+  "sensitive_paths": [],
+  "changed_protected_paths": []
+}

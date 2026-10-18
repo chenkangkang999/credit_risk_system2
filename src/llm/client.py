@@ -9,6 +9,7 @@ from pathlib import Path
 from openai import (APIConnectionError, APITimeoutError, AuthenticationError,
                     InternalServerError, OpenAI, RateLimitError)
 
+from src.llm.billing import BillingTracker, safe_model, token_count, usage_dict
 from src.utils.logger import get_logger
 
 logger = get_logger("llm")
@@ -24,6 +25,23 @@ class DeepSeekClient:
         self._request_times = []
         self._lock = threading.Lock()
         self.audit_log_path = Path(__file__).resolve().parents[2] / "logs/llm_audit.log"
+        self.billing = BillingTracker()
+        self.last_billing = None
+
+    @property
+    def billing_log_path(self):
+        return self.billing.ledger_path
+
+    @billing_log_path.setter
+    def billing_log_path(self, path):
+        self.billing.ledger_path = Path(path)
+
+    def _record_usage(self, model, usage, stream=False, status="ok"):
+        try:
+            self.last_billing = self.billing.record(model, usage, stream, status)
+        except (OSError, ValueError, KeyError, TypeError):
+            self.billing.last_error = "本次费用未能估算，请检查计费配置；实际扣费以服务商账单为准"
+            self.last_billing = None
 
     @property
     def configured(self):
@@ -78,8 +96,21 @@ class DeepSeekClient:
     def _log_audit(self, duration, usage, status):
         if not self.config.safety.audit_log.enabled:
             return
-        record = {"timestamp": datetime.now().isoformat(), "model": self.model,
-                  "duration_sec": round(duration, 3), "usage": usage, "status": status}
+        audit_usage = {}
+        for key in ("prompt_tokens", "completion_tokens", "total_tokens",
+                    "prompt_cache_hit_tokens", "prompt_cache_miss_tokens"):
+            value = token_count(usage.get(key))
+            if value is not None:
+                audit_usage[key] = value
+        for key, allowed in (("prompt_tokens_details", ("cached_tokens",)),
+                             ("completion_tokens_details", ("reasoning_tokens",))):
+            details = usage.get(key)
+            if isinstance(details, dict):
+                filtered = {name: details[name] for name in allowed if token_count(details.get(name)) is not None}
+                if filtered:
+                    audit_usage[key] = filtered
+        record = {"timestamp": datetime.now().isoformat(), "model": safe_model(self.model),
+                  "duration_sec": round(duration, 3), "usage": audit_usage, "status": status}
         try:
             self.audit_log_path.parent.mkdir(exist_ok=True)
             with self.audit_log_path.open("a", encoding="utf-8") as handle:
@@ -98,12 +129,14 @@ class DeepSeekClient:
             try:
                 response = self.client.chat.completions.create(
                     model=self.model, messages=messages, stream=False, **self._params(kwargs))
-                usage = response.usage.model_dump() if response.usage else {}
+                usage = usage_dict(getattr(response, "usage", None))
+                self._record_usage(getattr(response, "model", None) or self.model, usage)
                 self._log_audit(time.monotonic()-start, usage, "ok")
                 return response.choices[0].message.content or ""
             except AuthenticationError:
                 raise ValueError("API 密钥未通过验证，请检查本地配置") from None
             except _TRANSIENT:
+                self._record_usage(self.model, {}, status="connection_error")
                 self._log_audit(time.monotonic()-start, {}, "connection_error")
                 if attempt+1 == cfg.max_attempts:
                     raise RuntimeError("DeepSeek 暂时无法连接，请稍后重试") from None
@@ -118,23 +151,40 @@ class DeepSeekClient:
         cfg = self.deepseek_cfg.retry
         for attempt in range(cfg.max_attempts):
             emitted = False
+            recorded = False
+            usage = {}
+            response_model = self.model
             self._check_rate_limit()
             start = time.monotonic()
             try:
+                params = self._params(kwargs)
+                params["stream_options"] = {**(params.get("stream_options") or {}), "include_usage": True}
                 response = self.client.chat.completions.create(
-                    model=self.model, messages=messages, stream=True, **self._params(kwargs))
+                    model=self.model, messages=messages, stream=True, **params)
+                complete = False
                 try:
                     for chunk in response:
+                        response_model = getattr(chunk, "model", None) or response_model
+                        if getattr(chunk, "usage", None) is not None:
+                            usage = usage_dict(chunk.usage)
                         if chunk.choices and chunk.choices[0].delta.content:
                             emitted = True
                             yield chunk.choices[0].delta.content
+                    complete = True
                 finally:
-                    response.close()
-                self._log_audit(time.monotonic()-start, {"stream": True}, "ok")
+                    try:
+                        response.close()
+                    finally:
+                        self._record_usage(response_model, usage, stream=True,
+                                           status="ok" if complete else "stream_interrupted")
+                        recorded = True
+                self._log_audit(time.monotonic()-start, usage, "ok")
                 return
             except AuthenticationError:
                 raise ValueError("API 密钥未通过验证，请检查本地配置") from None
             except _TRANSIENT:
+                if not recorded:
+                    self._record_usage(response_model, usage, stream=True, status="stream_interrupted")
                 self._log_audit(time.monotonic()-start, {}, "stream_interrupted")
                 if emitted or attempt+1 == cfg.max_attempts:
                     raise RuntimeError("报告生成中断，已收到的内容保留，请重试") from None

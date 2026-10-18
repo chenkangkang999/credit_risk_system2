@@ -6,7 +6,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 USER_BASE = "60318f595a823e7fbb381960464eaad2e7016b5c"
-CHECKOUT_BASE = "82b8c132702c61cb571019418f6ccf1fa5e59d91"
+ORIGINAL_TEAM_BASE = "82b8c132702c61cb571019418f6ccf1fa5e59d91"
+PREVIOUS_PERSONAL_COMMIT = "ca04a6c0c2b968013d9fd5b9a381b5137ae3bc36"
+CHECKOUT_BASE = "0a63f13337147d198f9a3cdbc069d11b200f1561"
 
 
 def git(*args):
@@ -40,13 +42,19 @@ def build_report():
     env_ignored = subprocess.run(["git", "check-ignore", ".env", ".local/settings.yaml",
                                  ".streamlit/secrets.toml"], cwd=ROOT, capture_output=True, text=True).stdout
     result = {"user_base": USER_BASE, "checkout_base": CHECKOUT_BASE,
-              "teammate_updates_after_user_base": git("diff", "--name-only", f"{USER_BASE}..{CHECKOUT_BASE}").decode().splitlines(),
+              "original_team_base": ORIGINAL_TEAM_BASE,
+              "teammate_updates_after_user_base": sorted(set(
+                  git("diff", "--name-only", f"{USER_BASE}..{ORIGINAL_TEAM_BASE}").decode().splitlines() +
+                  git("diff", "--name-only", f"{PREVIOUS_PERSONAL_COMMIT}..{CHECKOUT_BASE}").decode().splitlines())),
               "modified_existing_files": changed, "new_files": added,
               "protected_unchanged": unchanged, "ignored_secret_paths": env_ignored.splitlines()}
     folder = ROOT / "docs"
     folder.mkdir(exist_ok=True)
     (folder / "change_manifest.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    patch = git("diff", "--no-ext-diff", CHECKOUT_BASE, "--", *changed) if changed else b""
+    generated = {"docs/existing_files.diff", "docs/change_manifest.json", "docs/security_check.json",
+                 "docs/修改与衔接说明.md", "docs/revision_check.json"}
+    patch_paths = [path for path in changed if path not in generated]
+    patch = git("diff", "--no-ext-diff", CHECKOUT_BASE, "--", *patch_paths) if patch_paths else b""
     (folder / "existing_files.diff").write_bytes(patch)
     print(json.dumps({"modified": len(changed), "new": len(added), "protected_unchanged": len(unchanged)}))
     return result

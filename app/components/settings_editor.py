@@ -22,7 +22,9 @@ def validate_settings(data):
         if len(names) != len(set(names)):
             raise ValueError("衍生特征名称不能重复")
         if any(rule.get("operation") not in ("ratio", "monthly_income", "payment_ratio", "fico_mean",
-                                             "bucket", "sum", "product", "difference") for rule in data["features"]):
+                                             "bucket", "sum", "product", "difference", "log1p", "category_flag",
+                                             "annual_interest_ratio", "credit_history", "debt_surplus",
+                                             "ratio_plus_one") for rule in data["features"]):
             raise ValueError("包含不支持的特征操作")
         for key in ["demo", "compliance"]:
             if not isinstance(data[key], dict):

@@ -62,9 +62,10 @@ class TrainingPipeline:
         self.feature_selector = None
         self.tuning_history = []
         self.tuning_metric = self.model_cfg.xgboost.tuning.metric
+        self.training_profile = "original"
 
     def run(self, use_sample=False, skip_mlp=False, skip_tuning=True, progress_callback=None,
-            model_names=None, data=None, quick=False):
+            model_names=None, data=None, quick=False, training_profile=None):
         start = time.time()
         np.random.seed(42)
         random.seed(42)
@@ -83,6 +84,12 @@ class TrainingPipeline:
             self.model_cfg.xgboost.tuning.n_trials = self.project_cfg.demo.trials
             self.model_cfg.mlp.training.epochs = self.project_cfg.demo.epochs
             self.model_cfg.mlp.architecture.hidden_layers = [64, 32]
+        training_cfg = self.project_cfg.get("training", {})
+        self.training_profile = training_profile or training_cfg.get("default_profile", "original")
+        if self.training_profile not in ("original", "robust"):
+            raise ValueError("训练方案应为 original 或 robust")
+        if self.training_profile == "robust":
+            self._apply_training_profile(training_cfg)
         for name in ["xgboost", "lightgbm"]:
             self.model_cfg[name].params.n_jobs = 2
         self.data_source = "合成演示数据" if use_sample else "用户提供的数据"
@@ -113,6 +120,12 @@ class TrainingPipeline:
                 "eval_results": self.eval_results, "feature_count": self.X_train.shape[1],
                 "train_samples": len(self.X_train)}
 
+    def _apply_training_profile(self, cfg):
+        for name in ("xgboost", "lightgbm"):
+            self.model_cfg[name].params.update(cfg.get(name, {}))
+        for group in ("architecture", "training"):
+            self.model_cfg.mlp[group].update(cfg.get("mlp", {}).get(group, {}))
+
     def _step_load_data(self, use_sample=False, data=None):
         self.df = validate_training_data(data.copy() if data is not None else
                                          DataLoader(self.data_cfg).load_train(use_sample=use_sample))
@@ -140,14 +153,19 @@ class TrainingPipeline:
             self.input_defaults[col] = value.item() if isinstance(value, np.generic) else value
 
     def _step_feature_engineering(self):
-        self.feature_builder = ProjectFeatureBuilder(self.project_cfg.features)
+        rules = self.project_cfg.features
+        names = self.project_cfg.get("training", {}).get("feature_names", [])
+        if self.training_profile == "robust" and names:
+            rules = [rule for rule in rules if rule["name"] in names]
+        self.feature_builder = ProjectFeatureBuilder(rules)
         self.X_train = self.feature_builder.build(self.raw_train)
         self.X_val = self.feature_builder.build(self.raw_val)
         self.X_test = self.feature_builder.build(self.raw_test)
         self.data_cfg.columns.numerical += self.feature_builder.get_created_features()
 
     def _step_preprocess(self):
-        self.preprocessor = ProjectPreprocessor(self.data_cfg, self.feature_cfg)
+        limit = self.project_cfg.get("training", {}).get("knn_reference_limit", 5000)
+        self.preprocessor = ProjectPreprocessor(self.data_cfg, self.feature_cfg, limit)
         self.X_train = self.preprocessor.fit_transform(self.X_train)
         self.X_val = self.preprocessor.transform(self.X_val)
         self.X_test = self.preprocessor.transform(self.X_test)
@@ -199,11 +217,14 @@ class TrainingPipeline:
         evaluator = Evaluator()
         self.test_predictions = {}
         self.thresholds = {}
+        self.validation_results = {}
         cfg = self.model_cfg.evaluation.threshold_optimization
         for name, model in self.models.items():
             threshold = cfg.fixed_value if cfg.method == "fixed" or not cfg.enabled else \
                 evaluator.find_best_threshold(self.y_val, model.predict_proba(self.X_val), cfg.method)
             p = positive_probability(model.predict_proba(self.X_test))
+            self.validation_results[name] = evaluator.evaluate(
+                self.y_val, model.predict_proba(self.X_val), threshold).to_dict()
             self.thresholds[name] = threshold
             self.test_predictions[name] = p
             self.eval_results[name] = evaluator.evaluate(self.y_test, p, threshold).to_dict()
@@ -228,10 +249,12 @@ class ArtifactManager:
                 "raw_columns": pipeline.raw_columns, "train_samples": len(pipeline.X_train),
                 "val_samples": len(pipeline.X_val), "test_samples": len(pipeline.X_test),
                 "model_names": list(pipeline.models), "seed": 42,
+                "training_profile": pipeline.training_profile,
                 "fit_train_indices": pipeline.raw_train.index.tolist()}
         bundle = {"meta": meta, "models": pipeline.models, "preprocessor": pipeline.preprocessor,
                   "feature_builder": pipeline.feature_builder, "feature_selector": pipeline.feature_selector,
                   "input_defaults": pipeline.input_defaults, "eval_results": pipeline.eval_results,
+                  "validation_results": pipeline.validation_results,
                   "thresholds": pipeline.thresholds, "project_config": pipeline.project_cfg.to_dict(),
                   "background": pipeline.X_train.head(100), "raw_test": pipeline.raw_test.head(200),
                   "raw_baseline": pipeline.raw_train.head(200), "y_test": pipeline.y_test.head(200),

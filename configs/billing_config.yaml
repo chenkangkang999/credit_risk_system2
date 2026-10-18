@@ -1,0 +1,16 @@
+currency: CNY
+unit_tokens: 1000000
+verified_on: "2026-10-18"
+source_url: "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/"
+period: peak
+period_note: "默认按高峰单价估算上限；确认请求处于官方空闲时段后，可改为 off_peak。实际扣费以 DeepSeek 账单为准。"
+official_peak_hours: "北京时间周一至周五（中国法定节假日除外）09:00-12:00、14:00-18:00，其余为空闲时段。"
+models:
+  deepseek-flash:
+    aliases: ["deepseek-v4-flash", "deepseek-v4-flash-vision-exp"]
+    peak: {input_cache_hit: 0.04, input_cache_miss: 2.0, output: 8.0}
+    off_peak: {input_cache_hit: 0.02, input_cache_miss: 1.0, output: 4.0}
+  deepseek-v4-pro:
+    aliases: []
+    peak: {input_cache_hit: 0.30, input_cache_miss: 9.0, output: 27.0}
+    off_peak: {input_cache_hit: 0.15, input_cache_miss: 4.5, output: 13.5}

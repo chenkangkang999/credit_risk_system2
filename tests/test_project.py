@@ -164,6 +164,7 @@ def llm(configs, tmp_path, monkeypatch):
     cfg.deepseek.retry.initial_wait = 0
     client = DeepSeekClient(cfg)
     client.audit_log_path = tmp_path / "audit.log"
+    client.billing_log_path = tmp_path / "billing.sqlite3"
     return client
 
 

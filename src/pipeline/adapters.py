@@ -6,18 +6,30 @@ from src.tuning.optimizer import OptunaOptimizer
 
 
 class ProjectPreprocessor(Preprocessor):
+    def __init__(self, data_config, feature_config, knn_reference_limit=5000):
+        super().__init__(data_config, feature_config)
+        self.knn_reference_limit = knn_reference_limit
+
     def _fit_imputers(self, df):
         self.empty_columns = [c for c in self.data_cfg.columns.numerical + self.data_cfg.columns.anonymous
                               if c in df.columns and df[c].isna().all()]
         for col in self.empty_columns:
             df[col] = 0.0
         super()._fit_imputers(df)
+        if self._knn_imputer is not None and len(df) > self.knn_reference_limit:
+            indices = np.random.default_rng(42).choice(len(df), self.knn_reference_limit, replace=False)
+            reference = self._knn_imputer._fit_X[indices].copy()
+            self._knn_imputer.fit(reference)
 
     def _apply_imputers(self, df):
         for col in self.empty_columns:
             if col in df:
                 df[col] = df[col].fillna(0.0)
-        return super()._apply_imputers(df)
+        if len(df) <= 2000:
+            return super()._apply_imputers(df)
+        import pandas as pd
+        return pd.concat([super(ProjectPreprocessor, self)._apply_imputers(df.iloc[i:i+2000].copy())
+                          for i in range(0, len(df), 2000)])
 
     def _apply_scaler(self, df):
         method = self.feature_cfg.scaling.method

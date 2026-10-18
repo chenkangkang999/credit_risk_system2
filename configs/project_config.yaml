@@ -9,12 +9,59 @@ demo:
   epochs: 8
   trials: 3
   max_upload_mb: 20
+training:
+  default_profile: robust
+  knn_reference_limit: 5000
+  feature_names: [monthly_income, installment_to_income_ratio, fico_avg, loan_to_income_ratio, revol_util_bucket, lower_grade_flag, long_employment_flag]
+  xgboost:
+    max_depth: 3
+    n_estimators: 250
+    learning_rate: 0.03
+    min_child_weight: 20
+    subsample: 0.9
+    colsample_bytree: 1.0
+    reg_alpha: 0.5
+    reg_lambda: 10.0
+    scale_pos_weight: 1.0
+  lightgbm:
+    num_leaves: 15
+    max_depth: 4
+    min_child_samples: 100
+    n_estimators: 250
+    learning_rate: 0.03
+    colsample_bytree: 1.0
+    reg_alpha: 0.5
+    reg_lambda: 20.0
+    scale_pos_weight: 1.0
+  mlp:
+    architecture:
+      hidden_layers: [32, 16]
+      dropout: 0.2
+      batch_norm: false
+    training:
+      epochs: 50
+      learning_rate: 0.003
+      weight_decay: 0.01
+      class_weight: none
+      scheduler: none
+      early_stopping: {enabled: true, patience: 10, min_delta: 0.0001}
 features:
   - {name: monthly_income, operation: monthly_income, description: 月收入}
   - {name: installment_to_income_ratio, operation: payment_ratio, description: 月供收入比}
   - {name: fico_avg, operation: fico_mean, description: 信用评分均值}
   - {name: loan_to_income_ratio, operation: ratio, numerator: loanAmnt, denominator: annualIncome, description: 贷款收入比}
   - {name: revol_util_bucket, operation: bucket, column: revolUtil, bins: [-.inf, 30, 60, 90, .inf], description: 信用利用率分箱}
+  - {name: income_log, operation: log1p, column: annualIncome, description: 年收入对数，减小极端收入影响}
+  - {name: loan_log, operation: log1p, column: loanAmnt, description: 贷款金额对数}
+  - {name: revolving_balance_log, operation: log1p, column: revolBal, description: 循环余额对数}
+  - {name: annual_interest_to_income, operation: annual_interest_ratio, description: 年度利息与收入比}
+  - {name: credit_history_years, operation: credit_history, description: 发放时已有信用历史年数}
+  - {name: open_account_ratio, operation: ratio_plus_one, numerator: openAcc, denominator: totalAcc, description: 活跃信用账户占比}
+  - {name: delinquency_per_account, operation: ratio_plus_one, numerator: delinquency_2years, denominator: openAcc, description: 每个活跃账户的逾期负担}
+  - {name: public_record_total, operation: sum, left: pubRec, right: pubRecBankruptcies, description: 公开记录和破产记录合计}
+  - {name: monthly_debt_surplus, operation: debt_surplus, description: 扣除存量负债和本次月供后的月收入估算}
+  - {name: lower_grade_flag, operation: category_flag, column: grade, values: [E, F, G], description: 较低信用等级标记}
+  - {name: long_employment_flag, operation: category_flag, column: employmentLength, values: [10+ years], description: 十年以上稳定就业标记}
 ab_test:
   model_a: xgboost
   model_b: lightgbm
