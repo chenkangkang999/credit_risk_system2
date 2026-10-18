@@ -149,10 +149,11 @@ ensemble:
   enabled: true
   method: "weighted_avg"        # weighted_avg / stacking / voting
 
-  # 权重融合参数
+  # 权重融合参数（方案A：树模型为主，MLP 补充多样性）
   weights:
-    xgboost: 0.6
-    mlp: 0.4
+    xgboost: 0.4
+    lightgbm: 0.4
+    mlp: 0.2
 
   # Stacking 参数（method=stacking 时生效）
   stacking:
